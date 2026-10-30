@@ -15,10 +15,10 @@ func NewNavRepository() *NavRepository {
 	return &NavRepository{db: database.DB}
 }
 
-const navColumns = "id, name, url, icon, sort_order, enabled, created_at, updated_at"
+const navColumns = "id, name, url, description, icon, sort_order, enabled, created_at, updated_at"
 
 func navScanDest(n *models.NavItem) []any {
-	return []any{&n.ID, &n.Name, &n.URL, &n.Icon, &n.SortOrder, &n.Enabled, &n.CreatedAt, &n.UpdatedAt}
+	return []any{&n.ID, &n.Name, &n.URL, &n.Description, &n.Icon, &n.SortOrder, &n.Enabled, &n.CreatedAt, &n.UpdatedAt}
 }
 
 func (r *NavRepository) queryNavItems(query string, args ...any) ([]models.NavItem, error) {
@@ -63,8 +63,8 @@ func (r *NavRepository) GetByID(id int64) (*models.NavItem, error) {
 
 func (r *NavRepository) Create(n *models.NavItem) (int64, error) {
 	res, err := r.db.Exec(
-		"INSERT INTO nav_items (name, url, icon, sort_order, enabled) VALUES (?, ?, ?, ?, ?)",
-		n.Name, n.URL, n.Icon, n.SortOrder, n.Enabled,
+		"INSERT INTO nav_items (name, url, description, icon, sort_order, enabled) VALUES (?, ?, ?, ?, ?, ?)",
+		n.Name, n.URL, n.Description, n.Icon, n.SortOrder, n.Enabled,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("insert nav item: %w", err)
@@ -74,8 +74,8 @@ func (r *NavRepository) Create(n *models.NavItem) (int64, error) {
 
 func (r *NavRepository) Update(n *models.NavItem) error {
 	_, err := r.db.Exec(
-		"UPDATE nav_items SET name = ?, url = ?, icon = ?, sort_order = ?, enabled = ? WHERE id = ?",
-		n.Name, n.URL, n.Icon, n.SortOrder, n.Enabled, n.ID,
+		"UPDATE nav_items SET name = ?, url = ?, description = ?, icon = ?, sort_order = ?, enabled = ? WHERE id = ?",
+		n.Name, n.URL, n.Description, n.Icon, n.SortOrder, n.Enabled, n.ID,
 	)
 	if err != nil {
 		return fmt.Errorf("update nav item: %w", err)

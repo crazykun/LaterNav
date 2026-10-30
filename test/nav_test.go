@@ -17,7 +17,7 @@ func TestIndexTemplateRendersConfiguredNavItems(t *testing.T) {
 	err := tmpl.ExecuteTemplate(&out, "index.html", map[string]any{
 		"sites": []any{},
 		"navItems": []models.NavItem{
-			{Name: "测试导航", URL: "/search?category=code", Icon: "code"},
+			{Name: "测试导航", URL: "/search?category=code", Description: "编程类工具入口", Icon: "code"},
 			{Name: "空图标项", URL: "/x", Icon: ""},
 		},
 		"isLoggedIn": false,
@@ -33,6 +33,9 @@ func TestIndexTemplateRendersConfiguredNavItems(t *testing.T) {
 	}
 	if !strings.Contains(html, "测试导航") {
 		t.Fatalf("index.html did not render configured nav name")
+	}
+	if !strings.Contains(html, `title="编程类工具入口"`) {
+		t.Fatalf("index.html did not render nav description tooltip")
 	}
 	if !strings.Contains(html, `href="/search?category=AI对话"`) {
 		t.Fatalf("index.html lost the fixed left category sidebar")
@@ -61,7 +64,7 @@ func TestAdminNavTemplatesRender(t *testing.T) {
 		"username":     "admin",
 		"adminSection": "nav",
 		"items": []models.NavItem{
-			{ID: 1, Name: "对话", URL: "/search?category=AI对话", Icon: "chat", SortOrder: 2, Enabled: true},
+			{ID: 1, Name: "对话", URL: "/search?category=AI对话", Description: "AI 对话类工具", Icon: "chat", SortOrder: 2, Enabled: true},
 			{ID: 2, Name: "隐藏项", URL: "/", Icon: "grid", SortOrder: 3, Enabled: false},
 		},
 	}); err != nil {
@@ -70,6 +73,9 @@ func TestAdminNavTemplatesRender(t *testing.T) {
 	listHTML := list.String()
 	if !strings.Contains(listHTML, "/admin/nav/edit/1") || !strings.Contains(listHTML, "对话") {
 		t.Fatalf("admin-nav.html did not render nav items")
+	}
+	if !strings.Contains(listHTML, "AI 对话类工具") {
+		t.Fatalf("admin-nav.html did not render item description")
 	}
 	if !strings.Contains(listHTML, "停用") {
 		t.Fatalf("admin-nav.html did not render disabled badge")
@@ -81,7 +87,7 @@ func TestAdminNavTemplatesRender(t *testing.T) {
 		"adminSection": "nav",
 		"formTitle":    "编辑导航",
 		"formAction":   "/admin/nav/edit/1",
-		"item":         models.NavItem{ID: 1, Name: "对话", URL: "/search?category=AI对话", Icon: "chat", SortOrder: 2, Enabled: false},
+		"item":         models.NavItem{ID: 1, Name: "对话", URL: "/search?category=AI对话", Description: "AI 对话类工具", Icon: "chat", SortOrder: 2, Enabled: false},
 		"iconOptions": []map[string]any{
 			{"Value": "grid", "Label": "网格（grid）"},
 			{"Value": "chat", "Label": "对话（chat）"},
@@ -92,6 +98,9 @@ func TestAdminNavTemplatesRender(t *testing.T) {
 	formHTML := form.String()
 	if !strings.Contains(formHTML, `value="对话"`) || !strings.Contains(formHTML, `action="/admin/nav/edit/1"`) {
 		t.Fatalf("admin-nav-form.html did not render item values")
+	}
+	if !strings.Contains(formHTML, "AI 对话类工具") {
+		t.Fatalf("admin-nav-form.html did not render description field")
 	}
 	if !strings.Contains(formHTML, `value="chat" selected`) {
 		t.Fatalf("admin-nav-form.html did not select current icon")

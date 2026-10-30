@@ -322,6 +322,7 @@ func parseNavForm(c *gin.Context, item *models.NavItem) {
 	sortOrder, _ := strconv.Atoi(strings.TrimSpace(c.PostForm("SortOrder")))
 	item.Name = strings.TrimSpace(c.PostForm("Name"))
 	item.URL = strings.TrimSpace(c.PostForm("URL"))
+	item.Description = strings.TrimSpace(c.PostForm("Description"))
 	item.Icon = strings.TrimSpace(c.PostForm("Icon"))
 	item.SortOrder = sortOrder
 	item.Enabled = c.PostForm("Enabled") == "on"
