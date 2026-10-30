@@ -135,7 +135,12 @@ x-init="$watch('dark', v => localStorage.setItem('dark', v))">
                     <!-- 导航菜单 (PC端) -->
                     <nav class="hidden sm:flex items-center gap-1">
                         {{ range .navItems }}
-                        <a href="{{ .URL }}" {{ if .Description }}title="{{ .Description }}"{{ end }} class="px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg font-medium transition-all">{{ .Name }}</a>
+                        <a href="{{ .URL }}" class="group relative px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg font-medium transition-all">
+                            {{ .Name }}
+                            {{ if .Description }}
+                            <span class="pointer-events-none absolute left-1/2 top-full z-50 mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-lg bg-gray-900 px-2.5 py-1 text-xs font-normal text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 dark:bg-gray-700">{{ .Description }}</span>
+                            {{ end }}
+                        </a>
                         {{ end }}
                     </nav>
                     
@@ -195,7 +200,12 @@ x-init="$watch('dark', v => localStorage.setItem('dark', v))">
             <div x-show="mobileMenu" x-cloak x-transition class="sm:hidden mt-3">
                 <nav class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 space-y-1">
                     {{ range .navItems }}
-                    <a href="{{ .URL }}" {{ if .Description }}title="{{ .Description }}"{{ end }} class="block px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg">{{ .Name }}</a>
+                    <a href="{{ .URL }}" class="group relative block px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg">
+                        {{ .Name }}
+                        {{ if .Description }}
+                        <span class="pointer-events-none absolute left-1/2 top-full z-50 mt-1 -translate-x-1/2 whitespace-nowrap rounded-lg bg-gray-900 px-2.5 py-1 text-xs font-normal text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 dark:bg-gray-600">{{ .Description }}</span>
+                        {{ end }}
+                    </a>
                     {{ end }}
                 </nav>
             </div>
