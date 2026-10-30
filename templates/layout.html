@@ -135,7 +135,7 @@ x-init="$watch('dark', v => localStorage.setItem('dark', v))">
                     <!-- 导航菜单 (PC端) -->
                     <nav class="hidden sm:flex items-center gap-1">
                         {{ range .navItems }}
-                        <a href="{{ .URL }}" class="px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg font-medium transition-all">{{ .Name }}</a>
+                        <a href="{{ .URL }}" {{ if .Description }}title="{{ .Description }}"{{ end }} class="px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg font-medium transition-all">{{ .Name }}</a>
                         {{ end }}
                     </nav>
                     
@@ -195,7 +195,7 @@ x-init="$watch('dark', v => localStorage.setItem('dark', v))">
             <div x-show="mobileMenu" x-cloak x-transition class="sm:hidden mt-3">
                 <nav class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 space-y-1">
                     {{ range .navItems }}
-                    <a href="{{ .URL }}" class="block px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg">{{ .Name }}</a>
+                    <a href="{{ .URL }}" {{ if .Description }}title="{{ .Description }}"{{ end }} class="block px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg">{{ .Name }}</a>
                     {{ end }}
                 </nav>
             </div>

@@ -22,6 +22,10 @@
                             <input type="text" id="url" name="URL" value="{{ with .item }}{{ .URL }}{{ end }}" class="admin-input" placeholder="/search?category=AI对话 或 https://..." required>
                         </div>
                         <div>
+                            <label for="description" class="admin-label">描述（鼠标悬停时的提示文案，可选）</label>
+                            <textarea id="description" name="Description" rows="2" class="admin-textarea" placeholder="如：AI 对话类工具">{{ with .item }}{{ .Description }}{{ end }}</textarea>
+                        </div>
+                        <div>
                             <label for="icon" class="admin-label">图标</label>
                             {{ $current := "" }}
                             {{ with .item }}{{ $current = .Icon }}{{ end }}

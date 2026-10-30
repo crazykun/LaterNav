@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS nav_items (
     KEY idx_enabled_sort (enabled, sort_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 默认导航项（对应原首页固定导航）
+-- 默认导航项（对应原首页顶部固定导航）
 INSERT INTO nav_items (name, url, icon, sort_order) VALUES
     ('全部', '/', 'grid', 1),
     ('对话', '/search?category=AI对话', 'chat', 2),
