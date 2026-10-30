@@ -9,10 +9,11 @@ import (
 )
 
 type Config struct {
-	Port  string      `yaml:"port"`
-	MySQL MySQLConfig `yaml:"mysql"`
-	JWT   JWTConfig   `yaml:"jwt"`
-	Log   LogConfig   `yaml:"log"`
+	Port      string      `yaml:"port"`
+	UploadDir string      `yaml:"upload_dir"`
+	MySQL     MySQLConfig `yaml:"mysql"`
+	JWT       JWTConfig   `yaml:"jwt"`
+	Log       LogConfig   `yaml:"log"`
 }
 
 type MySQLConfig struct {
@@ -44,15 +45,18 @@ var AppConfig Config
 
 func LoadConfig() error {
 	if err := loadConfigFile("config.yaml"); err == nil {
+		AppConfig.applyDefaults()
 		return overrideFromEnv()
 	}
 
 	if err := loadConfigFile("config.demo.yaml"); err == nil {
+		AppConfig.applyDefaults()
 		return overrideFromEnv()
 	}
 
 	AppConfig = Config{
-		Port: "8080",
+		Port:      "8080",
+		UploadDir: "uploads/img",
 		MySQL: MySQLConfig{
 			Host:     "localhost",
 			Port:     3306,
@@ -81,7 +85,15 @@ func LoadRequiredConfig(filePath string) error {
 	if err := loadConfigFile(filePath); err != nil {
 		return err
 	}
+	AppConfig.applyDefaults()
 	return overrideFromEnv()
+}
+
+// applyDefaults fills values omitted by existing config files.
+func (c *Config) applyDefaults() {
+	if c.UploadDir == "" {
+		c.UploadDir = "uploads/img"
+	}
 }
 
 func loadConfigFile(filePath string) error {

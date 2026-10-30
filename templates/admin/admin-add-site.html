@@ -25,10 +25,7 @@
                             <label for="description" class="admin-label">站点描述</label>
                             <textarea id="description" name="Description" rows="3" class="admin-textarea" required></textarea>
                         </div>
-                        <div>
-                            <label for="logo" class="admin-label">Logo路径</label>
-                            <input type="text" id="logo" name="Logo" class="admin-input" placeholder="/static/img/...">
-                        </div>
+                        {{ template "admin-logo-field" . }}
                         <div>
                             <label for="category" class="admin-label">主分类</label>
                             <input type="text" id="category" name="Category" class="admin-input" placeholder="如：AI对话">

@@ -10,7 +10,7 @@ import (
 	"embed"
 	"io/fs"
 	"log"
-	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 )
@@ -45,6 +45,10 @@ func main() {
 		log.Fatalf("Failed to init access logger: %v", err)
 	}
 
+	if err := os.MkdirAll(config.AppConfig.UploadDir, 0o755); err != nil {
+		log.Fatalf("Failed to create upload dir %q: %v", config.AppConfig.UploadDir, err)
+	}
+
 	settingService := services.GetSettingService()
 	if err := settingService.LoadCache(); err != nil {
 		log.Printf("Warning: could not load settings: %v", err)
@@ -58,7 +62,9 @@ func main() {
 	r.SetHTMLTemplate(sharedTemplates)
 
 	staticSub, _ := fs.Sub(staticFS, "static")
-	r.StaticFS("/static", http.FS(staticSub))
+	staticHandler := handlers.NewStaticHandler(staticSub, config.AppConfig.UploadDir)
+	r.GET("/static/*filepath", gin.WrapH(staticHandler))
+	r.HEAD("/static/*filepath", gin.WrapH(staticHandler))
 
 	r.Use(middleware.OptionalAuth())
 	r.Use(middleware.AddGlobalContext())
@@ -107,6 +113,7 @@ func main() {
 		admin.GET("/sites/edit/:id", adminHandler.AdminEditSiteForm)
 		admin.POST("/sites/edit/:id", adminHandler.AdminEditSite)
 		admin.GET("/sites/delete/:id", adminHandler.AdminDeleteSite)
+		admin.POST("/upload", adminHandler.AdminUploadImage)
 		admin.GET("/users", adminHandler.AdminUsers)
 		admin.POST("/users/:id/role", adminHandler.AdminUpdateUserRole)
 		admin.POST("/users/:id/password", adminHandler.AdminResetUserPassword)

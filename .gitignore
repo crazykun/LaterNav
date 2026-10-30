@@ -32,3 +32,6 @@ docs/*
 logs/*
 !logs/.gitkeep
 ai-later-nav.log
+
+# Uploaded images
+uploads/
