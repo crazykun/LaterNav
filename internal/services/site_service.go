@@ -65,6 +65,36 @@ func (s *SiteService) GetAll() ([]models.SiteDisplay, error) {
 	return result, nil
 }
 
+// GetAllFiltered 为后台站点管理提供关键词与推荐状态过滤，返回与前台一致的展示结构。
+func (s *SiteService) GetAllFiltered(query string, featured *bool) ([]models.SiteDisplay, error) {
+	sites, err := s.siteRepo.GetAllFiltered(query, featured)
+	if err != nil {
+		return nil, err
+	}
+
+	siteIDs := make([]int64, len(sites))
+	for i, site := range sites {
+		siteIDs[i] = site.ID
+	}
+	tagsMap, err := s.siteRepo.GetTagsBatch(siteIDs)
+	if err != nil {
+		tagsMap = make(map[int64][]string)
+	}
+
+	result := make([]models.SiteDisplay, 0, len(sites))
+	for _, site := range sites {
+		result = append(result, buildSiteDisplay(models.SiteWithTags{
+			Site: site,
+			Tags: tagsMap[site.ID],
+		}, 0))
+	}
+	return result, nil
+}
+
+func (s *SiteService) ToggleFeatured(id int64) error {
+	return s.siteRepo.ToggleFeatured(id)
+}
+
 func (s *SiteService) GetByID(id int64) (*models.SiteWithTags, error) {
 	site, err := s.siteRepo.GetByID(id)
 	if err != nil {

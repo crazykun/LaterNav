@@ -5,6 +5,7 @@ import (
 	"ai-later-nav/internal/services"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -113,7 +114,20 @@ func (h *AdminHandler) AdminIndex(c *gin.Context) {
 }
 
 func (h *AdminHandler) AdminSites(c *gin.Context) {
-	sites, err := h.siteService.GetAll()
+	query := strings.TrimSpace(c.Query("q"))
+	featuredFilter := c.Query("featured")
+
+	var featured *bool
+	switch featuredFilter {
+	case "1":
+		v := true
+		featured = &v
+	case "0":
+		v := false
+		featured = &v
+	}
+
+	sites, err := h.siteService.GetAllFiltered(query, featured)
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error": "加载站点失败",
@@ -121,13 +135,46 @@ func (h *AdminHandler) AdminSites(c *gin.Context) {
 		return
 	}
 
-	for i, j := 0, len(sites)-1; i < j; i, j = i+1, j-1 {
-		sites[i], sites[j] = sites[j], sites[i]
+	// 切换推荐后回跳时保留当前筛选条件；完整 URL 在模板中经 printf 整体输出，
+	// 避免 html/template 对 query 片段做 percent-encode
+	filterParams := url.Values{}
+	if query != "" {
+		filterParams.Set("q", query)
+	}
+	if featuredFilter != "" {
+		filterParams.Set("featured", featuredFilter)
+	}
+	toggleQuery := ""
+	if len(filterParams) > 0 {
+		toggleQuery = "?" + filterParams.Encode()
 	}
 
 	common := getCommonAdminData(c, "sites", "站点管理", "集中维护站点资料、标签和推荐状态。")
 	common["sites"] = sites
+	common["query"] = query
+	common["featuredFilter"] = featuredFilter
+	common["toggleQuery"] = toggleQuery
 	c.HTML(http.StatusOK, "admin-sites.html", common)
+}
+
+// AdminToggleSiteFeatured 列表内快捷切换推荐状态，回跳时保留筛选条件。
+func (h *AdminHandler) AdminToggleSiteFeatured(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的站点 ID"})
+		return
+	}
+
+	if err := h.siteService.ToggleFeatured(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "操作失败"})
+		return
+	}
+
+	redirect := "/admin/sites"
+	if c.Request.URL.RawQuery != "" {
+		redirect += "?" + c.Request.URL.RawQuery
+	}
+	c.Redirect(http.StatusFound, redirect)
 }
 
 func (h *AdminHandler) AdminAddSiteForm(c *gin.Context) {

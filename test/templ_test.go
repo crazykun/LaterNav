@@ -387,6 +387,7 @@ func TestAdminSitesTemplateRendersDisplayTagClasses(t *testing.T) {
 		Initials    string
 		Tags        []string
 		DisplayTags []DisplayTag
+		Featured    bool
 	}
 
 	var out bytes.Buffer

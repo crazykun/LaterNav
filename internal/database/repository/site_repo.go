@@ -45,6 +45,53 @@ func (r *SiteRepository) GetAll() ([]models.Site, error) {
 	return sites, rows.Err()
 }
 
+// GetAllFiltered 为后台站点列表提供关键词与推荐状态过滤。
+func (r *SiteRepository) GetAllFiltered(query string, featured *bool) ([]models.Site, error) {
+	where := []string{"deleted = 0"}
+	var args []interface{}
+
+	if query != "" {
+		pattern := "%" + query + "%"
+		where = append(where, "(name LIKE ? OR url LIKE ? OR description LIKE ? OR category LIKE ?)")
+		args = append(args, pattern, pattern, pattern, pattern)
+	}
+	if featured != nil {
+		where = append(where, "featured = ?")
+		args = append(args, *featured)
+	}
+
+	rows, err := r.db.Query(`
+		SELECT id, name, url, description, logo, category, rating, visits, featured, deleted, created_at, updated_at
+		FROM sites WHERE `+strings.Join(where, " AND ")+`
+		ORDER BY featured DESC, rating DESC, name ASC
+	`, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query filtered sites: %w", err)
+	}
+	defer rows.Close()
+
+	var sites []models.Site
+	for rows.Next() {
+		var s models.Site
+		if err := rows.Scan(&s.ID, &s.Name, &s.URL, &s.Description, &s.Logo,
+			&s.Category, &s.Rating, &s.Visits, &s.Featured, &s.Deleted,
+			&s.CreatedAt, &s.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("scan site: %w", err)
+		}
+		sites = append(sites, s)
+	}
+	return sites, rows.Err()
+}
+
+// ToggleFeatured 原子翻转推荐状态。
+func (r *SiteRepository) ToggleFeatured(id int64) error {
+	_, err := r.db.Exec("UPDATE sites SET featured = 1 - featured, updated_at = NOW() WHERE id = ? AND deleted = 0", id)
+	if err != nil {
+		return fmt.Errorf("toggle site featured: %w", err)
+	}
+	return nil
+}
+
 func (r *SiteRepository) GetByID(id int64) (*models.Site, error) {
 	var s models.Site
 	err := r.db.QueryRow(`
@@ -210,16 +257,17 @@ func (r *SiteRepository) Search(query, category, sortBy string, limit, offset in
 		return nil, 0, fmt.Errorf("count sites: %w", err)
 	}
 
+	// 推荐站点始终置顶，其余按所选维度排序
 	orderBy := "s.featured DESC, s.rating DESC, s.name ASC"
 	switch sortBy {
 	case "name":
-		orderBy = "s.name ASC"
+		orderBy = "s.featured DESC, s.name ASC"
 	case "rating":
-		orderBy = "s.rating DESC"
+		orderBy = "s.featured DESC, s.rating DESC"
 	case "visits":
-		orderBy = "s.visits DESC"
+		orderBy = "s.featured DESC, s.visits DESC"
 	case "newest":
-		orderBy = "s.created_at DESC"
+		orderBy = "s.featured DESC, s.created_at DESC"
 	}
 
 	selectArgs := append(args, limit, offset)

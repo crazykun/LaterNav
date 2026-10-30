@@ -113,6 +113,7 @@ func main() {
 		admin.GET("/sites/edit/:id", adminHandler.AdminEditSiteForm)
 		admin.POST("/sites/edit/:id", adminHandler.AdminEditSite)
 		admin.GET("/sites/delete/:id", adminHandler.AdminDeleteSite)
+		admin.GET("/sites/toggle-featured/:id", adminHandler.AdminToggleSiteFeatured)
 		admin.GET("/nav", adminHandler.AdminNav)
 		admin.GET("/nav/add", adminHandler.AdminNavAddForm)
 		admin.POST("/nav/add", adminHandler.AdminNavAdd)
