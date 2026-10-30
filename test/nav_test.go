@@ -34,7 +34,7 @@ func TestIndexTemplateRendersConfiguredNavItems(t *testing.T) {
 	if !strings.Contains(html, "测试导航") {
 		t.Fatalf("index.html did not render configured nav name")
 	}
-	if !strings.Contains(html, `title="编程类工具入口"`) {
+	if !strings.Contains(html, `>编程类工具入口</span>`) {
 		t.Fatalf("index.html did not render nav description tooltip")
 	}
 	if !strings.Contains(html, `href="/search?category=AI对话"`) {
