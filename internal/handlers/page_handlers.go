@@ -14,12 +14,14 @@ import (
 
 type PageHandler struct {
 	siteService   *services.SiteService
+	navService    *services.NavService
 	pageTemplates map[string]*template.Template
 }
 
 func NewPageHandler(pageTemplates map[string]*template.Template) *PageHandler {
 	return &PageHandler{
 		siteService:   services.NewSiteService(),
+		navService:    services.NewNavService(),
 		pageTemplates: pageTemplates,
 	}
 }
@@ -47,6 +49,11 @@ func (h *PageHandler) renderPage(c *gin.Context, name string, data gin.H) error 
 	}
 	if v, exists := c.Get("role"); exists {
 		data["role"] = v
+	}
+	if _, exists := data["navItems"]; !exists {
+		if navItems, err := h.navService.ListEnabled(); err == nil {
+			data["navItems"] = navItems
+		}
 	}
 
 	var buf bytes.Buffer

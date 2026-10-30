@@ -17,9 +17,7 @@ x-init="$watch('dark', v => localStorage.setItem('dark', v))">
     <link rel="stylesheet" href="/static/css/style.css">
     <script src="/static/js/htmx.min.js"></script>
     <script defer src="/static/js/alpine.min.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/fonts.css">
     <style>
         body {
             font-family: 'Fira Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
@@ -136,11 +134,9 @@ x-init="$watch('dark', v => localStorage.setItem('dark', v))">
                     
                     <!-- 导航菜单 (PC端) -->
                     <nav class="hidden sm:flex items-center gap-1">
-                        <a href="/" class="px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg font-medium transition-all">全部</a>
-                        <a href="/search?category=AI对话" class="px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg font-medium transition-all">对话</a>
-                        <a href="/search?category=AI创作" class="px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg font-medium transition-all">创作</a>
-                        <a href="/search?category=AI编程" class="px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg font-medium transition-all">编程</a>
-                        <a href="/search?category=AI工具" class="px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg font-medium transition-all">工具</a>
+                        {{ range .navItems }}
+                        <a href="{{ .URL }}" class="px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg font-medium transition-all">{{ .Name }}</a>
+                        {{ end }}
                     </nav>
                     
                     <!-- 用户菜单 -->
@@ -198,11 +194,9 @@ x-init="$watch('dark', v => localStorage.setItem('dark', v))">
             <!-- 移动端导航菜单 -->
             <div x-show="mobileMenu" x-cloak x-transition class="sm:hidden mt-3">
                 <nav class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 space-y-1">
-                    <a href="/" class="block px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg">全部</a>
-                    <a href="/search?category=AI对话" class="block px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg">对话</a>
-                    <a href="/search?category=AI创作" class="block px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg">创作</a>
-                    <a href="/search?category=AI编程" class="block px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg">编程</a>
-                    <a href="/search?category=AI工具" class="block px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg">工具</a>
+                    {{ range .navItems }}
+                    <a href="{{ .URL }}" class="block px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg">{{ .Name }}</a>
+                    {{ end }}
                 </nav>
             </div>
         </div>

@@ -1,0 +1,53 @@
+{{ define "admin-logo-field" }}
+{{ $logo := "" }}
+{{ with .site }}{{ $logo = .Logo }}{{ end }}
+<div>
+    <label for="logo" class="admin-label">Logo路径</label>
+    <div style="display: flex; gap: 0.5rem;">
+        <input type="text" id="logo" name="Logo" value="{{ $logo }}" class="admin-input" placeholder="/static/img/...">
+        <button type="button" id="logoUploadBtn" class="admin-btn-secondary" style="white-space: nowrap;">上传图片</button>
+    </div>
+    <input type="file" id="logoFileInput" accept=".png,.jpg,.jpeg,.gif,.webp,.ico" style="display: none;">
+    <div id="logoPreviewWrap" style="margin-top: 0.75rem; {{ if not $logo }}display: none;{{ end }}">
+        <img id="logoPreviewImg" src="{{ $logo }}" alt="Logo 预览" class="w-16 h-16 object-contain rounded-lg border border-gray-200" onerror="this.parentElement.style.display='none'">
+    </div>
+</div>
+<script>
+(function () {
+    var input = document.getElementById('logo');
+    var fileInput = document.getElementById('logoFileInput');
+    var btn = document.getElementById('logoUploadBtn');
+    var wrap = document.getElementById('logoPreviewWrap');
+    var img = document.getElementById('logoPreviewImg');
+
+    btn.addEventListener('click', function () { fileInput.click(); });
+
+    fileInput.addEventListener('change', function () {
+        var file = fileInput.files && fileInput.files[0];
+        if (!file) return;
+        var fd = new FormData();
+        fd.append('file', file);
+        btn.disabled = true;
+        btn.textContent = '上传中…';
+        fetch('/admin/upload', { method: 'POST', body: fd })
+            .then(function (res) {
+                return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+            })
+            .then(function (result) {
+                if (!result.ok) throw new Error(result.data.error || '上传失败');
+                input.value = result.data.path;
+                img.src = result.data.path;
+                wrap.style.display = '';
+            })
+            .catch(function (err) {
+                alert(err.message || '上传失败');
+            })
+            .then(function () {
+                btn.disabled = false;
+                btn.textContent = '上传图片';
+                fileInput.value = '';
+            });
+    });
+})();
+</script>
+{{ end }}

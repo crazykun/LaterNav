@@ -2,6 +2,7 @@
 ai-navigator
 ai-later
 *.exe
+*.zip
 
 # Config (contains secrets)
 config.yaml
@@ -31,3 +32,6 @@ docs/*
 logs/*
 !logs/.gitkeep
 ai-later-nav.log
+
+# Uploaded images
+uploads/

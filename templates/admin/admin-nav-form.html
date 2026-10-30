@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <title>{{ .formTitle }} - {{ .SiteName }}</title>
+    {{ template "admin-head" . }}
+</head>
+<body class="admin-body">
+    <div class="admin-shell">
+        {{ template "admin-sidebar" . }}
+        <div class="admin-main">
+            {{ template "admin-topbar" . }}
+            <main class="admin-content">
+                <section class="admin-surface admin-form-surface max-w-2xl">
+                    {{ template "admin-flash" . }}
+                    <form action="{{ .formAction }}" method="POST" class="admin-form-grid">
+                        <div>
+                            <label for="name" class="admin-label">导航名称</label>
+                            <input type="text" id="name" name="Name" value="{{ with .item }}{{ .Name }}{{ end }}" class="admin-input" placeholder="如：对话" required>
+                        </div>
+                        <div>
+                            <label for="url" class="admin-label">导航链接</label>
+                            <input type="text" id="url" name="URL" value="{{ with .item }}{{ .URL }}{{ end }}" class="admin-input" placeholder="/search?category=AI对话 或 https://..." required>
+                        </div>
+                        <div>
+                            <label for="icon" class="admin-label">图标</label>
+                            {{ $current := "" }}
+                            {{ with .item }}{{ $current = .Icon }}{{ end }}
+                            <select id="icon" name="Icon" class="admin-input">
+                                {{ range .iconOptions }}
+                                <option value="{{ .Value }}" {{ if eq .Value $current }}selected{{ end }}>{{ .Label }}</option>
+                                {{ end }}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="sort_order" class="admin-label">排序（数字越小越靠前）</label>
+                            <input type="number" id="sort_order" name="SortOrder" value="{{ with .item }}{{ .SortOrder }}{{ end }}" class="admin-input">
+                        </div>
+                        <div class="admin-checkbox-row">
+                            <input type="checkbox" id="enabled" name="Enabled" {{ $enabled := true }}{{ with .item }}{{ $enabled = .Enabled }}{{ end }}{{ if $enabled }}checked{{ end }} class="admin-checkbox">
+                            <label for="enabled" class="admin-checkbox-label">启用该导航项</label>
+                        </div>
+                        <div class="admin-form-actions">
+                            <a href="/admin/nav" class="admin-btn-secondary">取消</a>
+                            <button type="submit" class="admin-btn-primary">保存</button>
+                        </div>
+                    </form>
+                </section>
+            </main>
+        </div>
+    </div>
+</body>
+</html>

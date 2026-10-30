@@ -1,5 +1,8 @@
 port: 8080
 
+# Uploaded images are stored here and served from /static/img/
+upload_dir: uploads/img
+
 mysql:
   host: localhost
   port: 3306

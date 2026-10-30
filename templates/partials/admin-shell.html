@@ -3,9 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="/static/css/tailwind-3.4.17.css"></script>
 <link rel="stylesheet" href="/static/css/style.css">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/fonts.css">
 {{ end }}
 
 {{ define "admin-sidebar" }}
@@ -14,6 +12,7 @@
   <nav class="admin-sidebar-nav">
     <a href="/admin/" class="admin-nav-item {{ if eq .adminSection "dashboard" }}admin-nav-item-active{{ end }}">仪表盘</a>
     <a href="/admin/sites" class="admin-nav-item {{ if eq .adminSection "sites" }}admin-nav-item-active{{ end }}">站点管理</a>
+    <a href="/admin/nav" class="admin-nav-item {{ if eq .adminSection "nav" }}admin-nav-item-active{{ end }}">导航管理</a>
     <a href="/admin/stats" class="admin-nav-item {{ if eq .adminSection "stats" }}admin-nav-item-active{{ end }}">访问统计</a>
     <a href="/admin/users" class="admin-nav-item {{ if eq .adminSection "users" }}admin-nav-item-active{{ end }}">用户管理</a>
     <a href="/admin/settings" class="admin-nav-item {{ if eq .adminSection "settings" }}admin-nav-item-active{{ end }}">系统设置</a>

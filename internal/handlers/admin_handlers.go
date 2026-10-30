@@ -47,12 +47,14 @@ type AdminIndexData struct {
 type AdminHandler struct {
 	siteService *services.SiteService
 	userService *services.UserService
+	navService  *services.NavService
 }
 
 func NewAdminHandler() *AdminHandler {
 	return &AdminHandler{
 		siteService: services.NewSiteService(),
 		userService: services.NewUserService(),
+		navService:  services.NewNavService(),
 	}
 }
 
@@ -266,6 +268,129 @@ func (h *AdminHandler) AdminDeleteSite(c *gin.Context) {
 	}
 
 	c.Redirect(http.StatusFound, "/admin/sites")
+}
+
+func (h *AdminHandler) AdminNav(c *gin.Context) {
+	items, err := h.navService.GetAll()
+	if err != nil {
+		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+			"error": "加载导航失败",
+		})
+		return
+	}
+
+	common := getCommonAdminData(c, "nav", "导航管理", "配置首页分类导航的名称、链接、图标和排序。")
+	common["items"] = items
+	c.HTML(http.StatusOK, "admin-nav.html", common)
+}
+
+func (h *AdminHandler) navFormData(c *gin.Context, title, action string, item *models.NavItem) gin.H {
+	common := getCommonAdminData(c, "nav", title, "维护首页分类导航条目。")
+	common["item"] = item
+	common["formAction"] = action
+	common["formTitle"] = title
+
+	options := make([]gin.H, 0, len(services.IconKeys))
+	labels := map[string]string{
+		"grid":   "网格",
+		"chat":   "对话",
+		"create": "创作",
+		"code":   "编程",
+		"tool":   "工具",
+		"star":   "星标",
+		"link":   "链接",
+	}
+	for _, k := range services.IconKeys {
+		options = append(options, gin.H{"Value": k, "Label": labels[k] + "（" + k + "）"})
+	}
+	common["iconOptions"] = options
+	return common
+}
+
+func (h *AdminHandler) AdminNavAddForm(c *gin.Context) {
+	// Default new items to the end of the current order.
+	sortOrder := 1
+	if items, err := h.navService.GetAll(); err == nil && len(items) > 0 {
+		sortOrder = items[len(items)-1].SortOrder + 1
+	}
+
+	common := h.navFormData(c, "添加导航", "/admin/nav/add", &models.NavItem{SortOrder: sortOrder, Enabled: true})
+	c.HTML(http.StatusOK, "admin-nav-form.html", common)
+}
+
+func parseNavForm(c *gin.Context, item *models.NavItem) {
+	sortOrder, _ := strconv.Atoi(strings.TrimSpace(c.PostForm("SortOrder")))
+	item.Name = strings.TrimSpace(c.PostForm("Name"))
+	item.URL = strings.TrimSpace(c.PostForm("URL"))
+	item.Icon = strings.TrimSpace(c.PostForm("Icon"))
+	item.SortOrder = sortOrder
+	item.Enabled = c.PostForm("Enabled") == "on"
+}
+
+func (h *AdminHandler) AdminNavAdd(c *gin.Context) {
+	item := &models.NavItem{}
+	parseNavForm(c, item)
+
+	if _, err := h.navService.Create(item); err != nil {
+		common := h.navFormData(c, "添加导航", "/admin/nav/add", item)
+		common["error"] = "创建失败: " + err.Error()
+		c.HTML(http.StatusOK, "admin-nav-form.html", common)
+		return
+	}
+
+	c.Redirect(http.StatusFound, "/admin/nav")
+}
+
+func (h *AdminHandler) AdminNavEditForm(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.HTML(http.StatusBadRequest, "error.html", gin.H{"error": "无效的导航 ID"})
+		return
+	}
+
+	item, err := h.navService.GetByID(id)
+	if err != nil || item == nil {
+		c.HTML(http.StatusNotFound, "error.html", gin.H{"error": "导航不存在"})
+		return
+	}
+
+	common := h.navFormData(c, "编辑导航", "/admin/nav/edit/"+strconv.FormatInt(id, 10), item)
+	c.HTML(http.StatusOK, "admin-nav-form.html", common)
+}
+
+func (h *AdminHandler) AdminNavEdit(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.HTML(http.StatusBadRequest, "error.html", gin.H{"error": "无效的导航 ID"})
+		return
+	}
+
+	item := &models.NavItem{ID: id}
+	parseNavForm(c, item)
+
+	if err := h.navService.Update(item); err != nil {
+		common := h.navFormData(c, "编辑导航", "/admin/nav/edit/"+strconv.FormatInt(id, 10), item)
+		common["error"] = "更新失败: " + err.Error()
+		c.HTML(http.StatusOK, "admin-nav-form.html", common)
+		return
+	}
+
+	c.Redirect(http.StatusFound, "/admin/nav")
+}
+
+func (h *AdminHandler) AdminNavDelete(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的导航 ID"})
+		return
+	}
+
+	if err := h.navService.Delete(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除失败"})
+		return
+	}
+
+	c.Redirect(http.StatusFound, "/admin/nav")
 }
 
 func (h *AdminHandler) AdminUsers(c *gin.Context) {
