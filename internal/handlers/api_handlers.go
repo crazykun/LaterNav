@@ -263,10 +263,10 @@ func (h *APIHandler) SetInitialCredentials(c *gin.Context) {
 		c.HTML(http.StatusOK, "partials/password-form.html", csrf)
 		return
 	}
-	if err := h.userService.SetInitialCredentials(userID, c.PostForm("username"), c.PostForm("nickname"), password); err != nil {
+	if err := h.userService.SetInitialCredentials(userID, password); err != nil {
 		msg := "设置失败，请检查输入"
-		if err == services.ErrUsernameExists {
-			msg = "登录名已存在"
+		if err == services.ErrInvalidPassword {
+			msg = "密码至少 6 位"
 		}
 		csrf["error"] = msg
 		c.HTML(http.StatusOK, "partials/password-form.html", csrf)

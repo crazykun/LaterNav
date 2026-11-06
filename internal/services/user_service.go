@@ -131,12 +131,7 @@ func (s *UserService) UpdateProfile(userID int64, username, nickname string) err
 	return nil
 }
 
-func (s *UserService) SetInitialCredentials(userID int64, username, nickname, password string) error {
-	username = strings.TrimSpace(username)
-	nickname = strings.TrimSpace(nickname)
-	if err := ValidateProfile(username, nickname); err != nil {
-		return err
-	}
+func (s *UserService) SetInitialCredentials(userID int64, password string) error {
 	if len(password) < 6 {
 		return ErrInvalidPassword
 	}
@@ -144,11 +139,7 @@ func (s *UserService) SetInitialCredentials(userID int64, username, nickname, pa
 	if err != nil {
 		return err
 	}
-	if err := s.userRepo.UpdateInitialCredentials(userID, username, nickname, string(hash)); err != nil {
-		var mysqlErr *mysql.MySQLError
-		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
-			return ErrUsernameExists
-		}
+	if err := s.userRepo.UpdateInitialCredentials(userID, string(hash)); err != nil {
 		return err
 	}
 	return nil

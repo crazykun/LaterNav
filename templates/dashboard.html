@@ -57,11 +57,12 @@
         <h3 class="text-base font-medium text-gray-900 dark:text-white">修改个人资料</h3>
         <p x-show="error" x-text="error" class="text-red-600" role="alert"></p>
         <label class="block text-sm text-gray-700 dark:text-gray-300">登录名
-            <input name="username" x-model="username" readonly required maxlength="100" class="block w-full max-w-full truncate rounded border p-2 dark:text-white dark:bg-gray-700">
+            <input type="hidden" name="username" :value="username">
+            <div x-text="username" class="block w-full truncate rounded border border-gray-200 dark:border-gray-600 p-2 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 select-all"></div>
             <span class="text-xs text-gray-500">登录名仅用于登录，不可修改；页面显示使用下方昵称。</span>
         </label>
         <label class="block text-sm text-gray-700 dark:text-gray-300">昵称（可留空）
-            <input name="nickname" x-model="nickname" maxlength="100" class="block w-full rounded border p-2 dark:text-white dark:bg-gray-700">
+            <input name="nickname" x-model="nickname" maxlength="100" class="block w-full rounded border border-gray-300 dark:border-gray-600 p-2 dark:text-white dark:bg-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
         </label>
         <div class="flex gap-3"><button type="submit" :disabled="!ready" class="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50">保存</button>
         <button type="button" @click="$el.closest('dialog').close()" class="px-4 py-2 text-gray-500">取消</button></div>

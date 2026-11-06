@@ -64,8 +64,8 @@ func (r *UserRepository) UpdateProfile(userID int64, nickname string) error {
 	return nil
 }
 
-func (r *UserRepository) UpdateInitialCredentials(userID int64, username, nickname, passwordHash string) error {
-	result, err := r.db.Exec("UPDATE users SET username = ?, nickname = ?, password_hash = ?, updated_at = NOW() WHERE id = ? AND password_hash = '!'", username, nickname, passwordHash, userID)
+func (r *UserRepository) UpdateInitialCredentials(userID int64, passwordHash string) error {
+	result, err := r.db.Exec("UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ? AND password_hash = '!'", passwordHash, userID)
 	if err != nil {
 		return fmt.Errorf("update initial credentials: %w", err)
 	}
