@@ -533,12 +533,7 @@ func settingsCSRF(c *gin.Context) string {
 func renderAdminSettings(c *gin.Context, messageKey, message string) {
 	settings := services.GetSettingService().GetAllSettings()
 	delete(settings, "oauth_linux_client_secret")
-	if settings["oauth_linux_client_id"] == "" {
-		settings["oauth_linux_client_id"] = "foa_3_LbaAtj2WGHnKmNDgUw55pE"
-	}
-	if settings["oauth_linux_redirect_url"] == "" {
-		settings["oauth_linux_redirect_url"] = "http://localhost:8080/oauth/callback"
-	}
+	delete(settings, "oidc_client_secret")
 	common := getCommonAdminData(c, "settings", "系统设置", "维护站点信息和登录设置。")
 	common["settings"] = settings
 	common["csrfToken"] = settingsCSRF(c)
@@ -564,21 +559,6 @@ func (h *AdminHandler) AdminSettingsSave(c *gin.Context) {
 		"copyright": strings.TrimSpace(c.PostForm("copyright")),
 	}
 
-	redirect := strings.TrimSpace(c.PostForm("oauth_linux_redirect_url"))
-	u, err := url.Parse(redirect)
-	if err != nil || u.Hostname() == "" || u.User != nil || u.Opaque != "" || u.Path != "/oauth/callback" || u.RawPath != "" || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" || !(u.Scheme == "https" || (u.Scheme == "http" && u.Hostname() == "localhost")) {
-		renderAdminSettings(c, "error", "回调地址必须使用 HTTPS 或 localhost HTTP，路径必须为 /oauth/callback。")
-		return
-	}
-	updates["oauth_linux_redirect_url"] = redirect
-	updates["oauth_linux_client_id"] = strings.TrimSpace(c.PostForm("oauth_linux_client_id"))
-	updates["oauth_linux_enabled"] = "false"
-	if c.PostForm("oauth_linux_enabled") == "true" {
-		updates["oauth_linux_enabled"] = "true"
-	}
-	if secret := c.PostForm("oauth_linux_client_secret"); secret != "" {
-		updates["oauth_linux_client_secret"] = secret
-	}
 	if err := ss.UpdateMultiple(updates); err != nil {
 		renderAdminSettings(c, "error", "保存失败，请稍后重试。")
 		return

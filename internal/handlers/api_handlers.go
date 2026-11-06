@@ -153,8 +153,9 @@ func (h *APIHandler) Login(c *gin.Context) {
 
 	if username == "" || password == "" {
 		c.HTML(http.StatusOK, "partials/login-form.html", gin.H{
-			"oauthEnabled": oauthEnabled(),
-			"error":        "请输入用户名和密码",
+			"oidcEnabled": oidcEnabled(),
+			"oidcName":    oidcName(),
+			"error":       "请输入用户名和密码",
 		})
 		return
 	}
@@ -166,8 +167,9 @@ func (h *APIHandler) Login(c *gin.Context) {
 			msg = "账号已被禁用"
 		}
 		c.HTML(http.StatusOK, "partials/login-form.html", gin.H{
-			"oauthEnabled": oauthEnabled(),
-			"error":        msg,
+			"oidcEnabled": oidcEnabled(),
+			"oidcName":    oidcName(),
+			"error":       msg,
 		})
 		return
 	}
@@ -175,8 +177,9 @@ func (h *APIHandler) Login(c *gin.Context) {
 	token, err := middleware.GenerateToken(user)
 	if err != nil {
 		c.HTML(http.StatusOK, "partials/login-form.html", gin.H{
-			"oauthEnabled": oauthEnabled(),
-			"error":        "登录失败，请重试",
+			"oidcEnabled": oidcEnabled(),
+			"oidcName":    oidcName(),
+			"error":       "登录失败，请重试",
 		})
 		return
 	}
@@ -243,37 +246,68 @@ func (h *APIHandler) Logout(c *gin.Context) {
 	c.String(http.StatusOK, "<script>window.location.href='/'</script>")
 }
 
+func (h *APIHandler) SetInitialCredentials(c *gin.Context) {
+	if !validUserCSRF(c) {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+	userID := c.GetInt64("user_id")
+	if userID <= 0 {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	csrf := gin.H{"initialCredentials": true, "csrfToken": profileCSRF(c)}
+	password := c.PostForm("new_password")
+	if password != c.PostForm("confirm_password") {
+		csrf["error"] = "两次密码不一致"
+		c.HTML(http.StatusOK, "partials/password-form.html", csrf)
+		return
+	}
+	if err := h.userService.SetInitialCredentials(userID, c.PostForm("username"), c.PostForm("nickname"), password); err != nil {
+		msg := "设置失败，请检查输入"
+		if err == services.ErrUsernameExists {
+			msg = "登录名已存在"
+		}
+		csrf["error"] = msg
+		c.HTML(http.StatusOK, "partials/password-form.html", csrf)
+		return
+	}
+	c.HTML(http.StatusOK, "partials/password-form.html", gin.H{"success": "本站登录凭据设置成功"})
+}
 func (h *APIHandler) ChangePassword(c *gin.Context) {
+	if !validUserCSRF(c) {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
 	userID, exists := c.Get("user_id")
 	if !exists {
 		c.HTML(http.StatusOK, "partials/password-form.html", gin.H{
-			"error": "请先登录",
+			"csrfToken": profileCSRF(c),
+			"error":     "请先登录",
 		})
 		return
 	}
 
+	form := gin.H{"csrfToken": profileCSRF(c)}
 	currentPassword := c.PostForm("current_password")
 	newPassword := c.PostForm("new_password")
 	confirmPassword := c.PostForm("confirm_password")
 
 	if currentPassword == "" || newPassword == "" {
-		c.HTML(http.StatusOK, "partials/password-form.html", gin.H{
-			"error": "请填写当前密码和新密码",
-		})
+		form["error"] = "请填写当前密码和新密码"
+		c.HTML(http.StatusOK, "partials/password-form.html", form)
 		return
 	}
 
 	if newPassword != confirmPassword {
-		c.HTML(http.StatusOK, "partials/password-form.html", gin.H{
-			"error": "两次新密码不一致",
-		})
+		form["error"] = "两次新密码不一致"
+		c.HTML(http.StatusOK, "partials/password-form.html", form)
 		return
 	}
 
 	if len(newPassword) < 6 {
-		c.HTML(http.StatusOK, "partials/password-form.html", gin.H{
-			"error": "新密码至少 6 位",
-		})
+		form["error"] = "新密码至少 6 位"
+		c.HTML(http.StatusOK, "partials/password-form.html", form)
 		return
 	}
 
@@ -283,9 +317,8 @@ func (h *APIHandler) ChangePassword(c *gin.Context) {
 		if err == services.ErrInvalidPassword {
 			msg = "当前密码错误"
 		}
-		c.HTML(http.StatusOK, "partials/password-form.html", gin.H{
-			"error": msg,
-		})
+		form["error"] = msg
+		c.HTML(http.StatusOK, "partials/password-form.html", form)
 		return
 	}
 

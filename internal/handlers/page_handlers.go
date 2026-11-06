@@ -35,7 +35,8 @@ func (h *PageHandler) renderPage(c *gin.Context, name string, data gin.H) error 
 	if data == nil {
 		data = gin.H{}
 	}
-	data["oauthEnabled"] = oauthEnabled()
+	data["oidcEnabled"] = oidcEnabled()
+	data["oidcName"] = oidcName()
 	if v, exists := c.Get("Copyright"); exists {
 		data["Copyright"] = v
 	}
@@ -177,19 +178,21 @@ func (h *PageHandler) UserDashboard(c *gin.Context) {
 	userService := services.NewUserService()
 
 	favoriteIDs, _ := userService.GetFavoriteIDs(userID)
-
 	var favoriteSites []models.SiteDisplay
 	if len(favoriteIDs) > 0 {
 		favoriteSites, _ = h.siteService.GetByIDs(favoriteIDs)
 	}
-
+	user, _ := userService.GetByID(userID)
+	initialCredentials := user != nil && user.PasswordHash == "!"
 	copyright, _ := c.Get("Copyright")
 	if err := h.renderPage(c, "dashboard.html", gin.H{
-		"favoriteIDs":   favoriteIDs,
-		"favoriteSites": favoriteSites,
-		"Copyright":     copyright,
-		"isLoggedIn":    true,
-		"username":      c.GetString("username"),
+		"favoriteIDs":        favoriteIDs,
+		"favoriteSites":      favoriteSites,
+		"Copyright":          copyright,
+		"isLoggedIn":         true,
+		"username":           c.GetString("username"),
+		"initialCredentials": initialCredentials,
+		"csrfToken":          profileCSRF(c),
 	}); err != nil {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error": "页面渲染失败",

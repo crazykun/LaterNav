@@ -7,13 +7,21 @@ import (
 	"ai-later-nav/internal/middleware"
 	"ai-later-nav/internal/services"
 	"ai-later-nav/internal/web"
+	"context"
 	"embed"
+	"fmt"
 	"io/fs"
 	"log"
+	"net/http"
 	"os"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 )
+
+func oidcSettingConfig(ss *services.SettingService) handlers.OIDCConfig {
+	return handlers.OIDCConfig{Issuer: ss.GetSetting("oidc_issuer"), DiscoveryURL: ss.GetSetting("oidc_discovery_url"), ClientID: ss.GetSetting("oidc_client_id"), ClientSecret: ss.GetSetting("oidc_client_secret"), RedirectURL: ss.GetSetting("oidc_redirect_url")}
+}
 
 //go:embed templates/*
 var templateFS embed.FS
@@ -76,22 +84,43 @@ func main() {
 	pageHandler := handlers.NewPageHandler(pageTemplates)
 	apiHandler := handlers.NewAPIHandler()
 	adminHandler := handlers.NewAdminHandler()
-	oauthHandler := func() *handlers.OAuthHandler {
-		clientID := settingService.GetSetting("oauth_linux_client_id")
-		if settingService.GetSetting("oauth_linux_enabled") != "true" {
-			clientID = ""
+	var oidcHandler *handlers.OIDCHandler
+	var oidcConfigKey string
+	var oidcMu sync.Mutex
+	getOIDC := func() (*handlers.OIDCHandler, error) {
+		oidcMu.Lock()
+		defer oidcMu.Unlock()
+		if settingService.GetSetting("oidc_enabled") != "true" {
+			return nil, fmt.Errorf("oidc disabled")
 		}
-		return &handlers.OAuthHandler{
-			ClientID:     clientID,
-			ClientSecret: settingService.GetSetting("oauth_linux_client_secret"),
-			RedirectURL:  settingService.GetSetting("oauth_linux_redirect_url"),
-			AuthorizeURL: "https://linux.sb/forum_oauth_authorize",
-			TokenURL:     "https://linux.sb/forum_oauth_token",
-			UserInfoURL:  "https://linux.sb/forum_oauth_userinfo",
+		cfg := oidcSettingConfig(settingService)
+		key := fmt.Sprintf("%s\x00%s\x00%s\x00%s\x00%s", cfg.Issuer, cfg.DiscoveryURL, cfg.ClientID, cfg.ClientSecret, cfg.RedirectURL)
+		if oidcHandler != nil && oidcConfigKey == key {
+			return oidcHandler, nil
 		}
+		h, err := handlers.NewOIDCHandler(context.Background(), cfg)
+		if err != nil {
+			return nil, err
+		}
+		oidcHandler, oidcConfigKey = h, key
+		return h, nil
 	}
-	r.GET("/oauth/login", func(c *gin.Context) { oauthHandler().Start(c) })
-	r.GET("/oauth/callback", func(c *gin.Context) { oauthHandler().Callback(c) })
+	r.GET("/oauth/login", func(c *gin.Context) {
+		h, err := getOIDC()
+		if err != nil {
+			c.String(http.StatusServiceUnavailable, "第三方登录尚未配置")
+			return
+		}
+		h.Start(c)
+	})
+	r.GET("/oauth/callback", func(c *gin.Context) {
+		h, err := getOIDC()
+		if err != nil {
+			c.String(http.StatusServiceUnavailable, "第三方登录尚未配置")
+			return
+		}
+		h.Callback(c)
+	})
 
 	r.GET("/setup", pageHandler.SetupPage)
 	r.POST("/api/setup", apiHandler.Setup)
@@ -116,6 +145,9 @@ func main() {
 	auth.Use(middleware.AuthMiddleware())
 	{
 		auth.GET("/dashboard", pageHandler.UserDashboard)
+		auth.GET("/api/profile", handlers.GetProfile)
+		auth.POST("/api/profile", handlers.UpdateProfile)
+		auth.POST("/api/auth/set-initial-credentials", apiHandler.SetInitialCredentials)
 		auth.POST("/api/auth/change-password", apiHandler.ChangePassword)
 		auth.POST("/api/favorites/:id", apiHandler.ToggleFavorite)
 	}
@@ -146,6 +178,8 @@ func main() {
 		admin.GET("/stats", adminHandler.AdminStats)
 		admin.GET("/settings", adminHandler.AdminSettingsForm)
 		admin.POST("/settings", adminHandler.AdminSettingsSave)
+		admin.GET("/oidc", adminHandler.AdminOIDCForm)
+		admin.POST("/oidc", adminHandler.AdminOIDCSave)
 	}
 
 	port := config.AppConfig.Port

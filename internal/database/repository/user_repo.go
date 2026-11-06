@@ -29,9 +29,9 @@ func (r *UserRepository) Create(user *models.User) (int64, error) {
 func (r *UserRepository) GetByID(id int64) (*models.User, error) {
 	var u models.User
 	err := r.db.QueryRow(`
-		SELECT id, username, COALESCE(email, ''), password_hash, role, status, created_at, updated_at
+		SELECT id, username, nickname, COALESCE(email, ''), password_hash, role, status, created_at, updated_at
 		FROM users WHERE id = ?
-	`, id).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Role, &u.Status, &u.CreatedAt, &u.UpdatedAt)
+	`, id).Scan(&u.ID, &u.Username, &u.Nickname, &u.Email, &u.PasswordHash, &u.Role, &u.Status, &u.CreatedAt, &u.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -44,9 +44,9 @@ func (r *UserRepository) GetByID(id int64) (*models.User, error) {
 func (r *UserRepository) GetByUsername(username string) (*models.User, error) {
 	var u models.User
 	err := r.db.QueryRow(`
-		SELECT id, username, COALESCE(email, ''), password_hash, role, status, created_at, updated_at
+		SELECT id, username, nickname, COALESCE(email, ''), password_hash, role, status, created_at, updated_at
 		FROM users WHERE username = ?
-	`, username).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Role, &u.Status, &u.CreatedAt, &u.UpdatedAt)
+	`, username).Scan(&u.ID, &u.Username, &u.Nickname, &u.Email, &u.PasswordHash, &u.Role, &u.Status, &u.CreatedAt, &u.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -56,6 +56,28 @@ func (r *UserRepository) GetByUsername(username string) (*models.User, error) {
 	return &u, nil
 }
 
+func (r *UserRepository) UpdateProfile(userID int64, nickname string) error {
+	_, err := r.db.Exec("UPDATE users SET nickname = ?, updated_at = NOW() WHERE id = ?", nickname, userID)
+	if err != nil {
+		return fmt.Errorf("update profile: %w", err)
+	}
+	return nil
+}
+
+func (r *UserRepository) UpdateInitialCredentials(userID int64, username, nickname, passwordHash string) error {
+	result, err := r.db.Exec("UPDATE users SET username = ?, nickname = ?, password_hash = ?, updated_at = NOW() WHERE id = ? AND password_hash = '!'", username, nickname, passwordHash, userID)
+	if err != nil {
+		return fmt.Errorf("update initial credentials: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("update initial credentials rows affected: %w", err)
+	}
+	if rows == 0 {
+		return fmt.Errorf("initial credentials already set or user not found")
+	}
+	return nil
+}
 func (r *UserRepository) UpdatePassword(userID int64, passwordHash string) error {
 	_, err := r.db.Exec(`
 		UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?
@@ -132,7 +154,7 @@ func (r *UserRepository) CountUsers() (int64, error) {
 
 func (r *UserRepository) GetAllUsers() ([]*models.User, error) {
 	rows, err := r.db.Query(`
-		SELECT id, username, COALESCE(email, ''), password_hash, role, status, created_at, updated_at
+		SELECT id, username, nickname, COALESCE(email, ''), password_hash, role, status, created_at, updated_at
 		FROM users ORDER BY id DESC
 	`)
 	if err != nil {
@@ -143,7 +165,7 @@ func (r *UserRepository) GetAllUsers() ([]*models.User, error) {
 	var users []*models.User
 	for rows.Next() {
 		var u models.User
-		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Role, &u.Status, &u.CreatedAt, &u.UpdatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.Nickname, &u.Email, &u.PasswordHash, &u.Role, &u.Status, &u.CreatedAt, &u.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scan user: %w", err)
 		}
 		users = append(users, &u)
@@ -159,7 +181,7 @@ func (r *UserRepository) CountTodayUsers() (int64, error) {
 
 func (r *UserRepository) GetRecentUsers(limit int) ([]*models.User, error) {
 	rows, err := r.db.Query(`
-		SELECT id, username, COALESCE(email, ''), password_hash, role, status, created_at, updated_at
+		SELECT id, username, nickname, COALESCE(email, ''), password_hash, role, status, created_at, updated_at
 		FROM users ORDER BY created_at DESC LIMIT ?
 	`, limit)
 	if err != nil {
@@ -170,7 +192,7 @@ func (r *UserRepository) GetRecentUsers(limit int) ([]*models.User, error) {
 	var users []*models.User
 	for rows.Next() {
 		var u models.User
-		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Role, &u.Status, &u.CreatedAt, &u.UpdatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.Nickname, &u.Email, &u.PasswordHash, &u.Role, &u.Status, &u.CreatedAt, &u.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scan user: %w", err)
 		}
 		users = append(users, &u)

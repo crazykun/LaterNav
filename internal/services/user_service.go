@@ -4,19 +4,27 @@ import (
 	"ai-later-nav/internal/database/repository"
 	"ai-later-nav/internal/models"
 	"errors"
+	"strings"
+	"unicode"
+	"unicode/utf8"
+
+	"github.com/go-sql-driver/mysql"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
 var (
-	ErrUserNotFound         = errors.New("user not found")
-	ErrUsernameExists       = errors.New("username already exists")
-	ErrInvalidPassword      = errors.New("invalid password")
-	ErrUserBlocked          = errors.New("user is blocked")
-	ErrCannotModifySelfRole = errors.New("cannot modify your own role")
-	ErrCannotBlockSelf      = errors.New("cannot block yourself")
-	ErrInvalidRole          = errors.New("invalid role")
-	ErrInvalidStatus        = errors.New("invalid status")
+	ErrUserNotFound           = errors.New("user not found")
+	ErrUsernameExists         = errors.New("username already exists")
+	ErrInvalidPassword        = errors.New("invalid password")
+	ErrUserBlocked            = errors.New("user is blocked")
+	ErrCannotModifySelfRole   = errors.New("cannot modify your own role")
+	ErrCannotBlockSelf        = errors.New("cannot block yourself")
+	ErrInvalidRole            = errors.New("invalid role")
+	ErrInvalidStatus          = errors.New("invalid status")
+	ErrInvalidUsername        = errors.New("invalid username")
+	ErrInvalidNickname        = errors.New("invalid nickname")
+	ErrUsernameReauthRequired = errors.New("username change requires reauthentication")
 )
 
 type UserService struct {
@@ -78,6 +86,73 @@ func (s *UserService) GetByID(id int64) (*models.User, error) {
 	return s.userRepo.GetByID(id)
 }
 
+// ValidateProfile checks the database length limits and rejects control characters.
+func ValidateProfile(username, nickname string) error {
+	if !utf8.ValidString(username) || username == "" || strings.TrimSpace(username) != username || utf8.RuneCountInString(username) > 100 || strings.IndexFunc(username, unicode.IsControl) >= 0 {
+		return ErrInvalidUsername
+	}
+	if !utf8.ValidString(nickname) || utf8.RuneCountInString(nickname) > 100 || strings.IndexFunc(nickname, unicode.IsControl) >= 0 {
+		return ErrInvalidNickname
+	}
+	return nil
+}
+
+// Username changes are disabled until a trusted reauthentication flow exists.
+func CheckProfileUsername(current, requested string) error {
+	if current != requested {
+		return ErrUsernameReauthRequired
+	}
+	return nil
+}
+
+func (s *UserService) UpdateProfile(userID int64, username, nickname string) error {
+	username = strings.TrimSpace(username)
+	nickname = strings.TrimSpace(nickname)
+	if err := ValidateProfile(username, nickname); err != nil {
+		return err
+	}
+	user, err := s.userRepo.GetByID(userID)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return ErrUserNotFound
+	}
+	if err := CheckProfileUsername(user.Username, username); err != nil {
+		return err
+	}
+	if err = s.userRepo.UpdateProfile(userID, nickname); err != nil {
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+			return ErrUsernameExists
+		}
+		return err
+	}
+	return nil
+}
+
+func (s *UserService) SetInitialCredentials(userID int64, username, nickname, password string) error {
+	username = strings.TrimSpace(username)
+	nickname = strings.TrimSpace(nickname)
+	if err := ValidateProfile(username, nickname); err != nil {
+		return err
+	}
+	if len(password) < 6 {
+		return ErrInvalidPassword
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	if err := s.userRepo.UpdateInitialCredentials(userID, username, nickname, string(hash)); err != nil {
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+			return ErrUsernameExists
+		}
+		return err
+	}
+	return nil
+}
 func (s *UserService) ChangePassword(userID int64, currentPassword, newPassword string) error {
 	user, err := s.userRepo.GetByID(userID)
 	if err != nil {
@@ -86,16 +161,13 @@ func (s *UserService) ChangePassword(userID int64, currentPassword, newPassword 
 	if user == nil {
 		return ErrUserNotFound
 	}
-
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(currentPassword)); err != nil {
 		return ErrInvalidPassword
 	}
-
 	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
-
 	return s.userRepo.UpdatePassword(userID, string(hash))
 }
 

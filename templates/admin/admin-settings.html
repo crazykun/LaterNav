@@ -23,23 +23,6 @@
                             <input id="copyright" name="copyright" type="text" class="admin-input" value="{{ index .settings "copyright" }}">
                             <p class="text-xs text-gray-500 mt-1">显示在页面底部</p>
                         </div>
-                        <div>
-                            <label class="admin-label"><input name="oauth_linux_enabled" type="checkbox" value="true" {{ if eq (index .settings "oauth_linux_enabled") "true" }}checked{{ end }}> 启用 Linux.sb 登录</label>
-                        </div>
-                        <div>
-                            <label for="oauth_linux_client_id" class="admin-label">Linux.sb Client ID</label>
-                            <input id="oauth_linux_client_id" name="oauth_linux_client_id" type="text" class="admin-input" value="{{ index .settings "oauth_linux_client_id" }}">
-                        </div>
-                        <div>
-                            <label for="oauth_linux_client_secret" class="admin-label">Linux.sb Client Secret</label>
-                            <input id="oauth_linux_client_secret" name="oauth_linux_client_secret" type="password" class="admin-input" autocomplete="new-password">
-                            <p class="text-xs text-gray-500 mt-1">留空保持现有密钥</p>
-                        </div>
-                        <div>
-                            <label for="oauth_linux_redirect_url" class="admin-label">回调地址</label>
-                            <input id="oauth_linux_redirect_url" name="oauth_linux_redirect_url" type="url" class="admin-input" value="{{ index .settings "oauth_linux_redirect_url" }}" required>
-                            <p class="text-xs text-gray-500 mt-1">必须使用 HTTPS，或使用 localhost 的 HTTP 地址；路径为 /oauth/callback。</p>
-                        </div>
                         <div class="admin-form-actions">
                             <button type="submit" class="admin-btn-primary">保存设置</button>
                         </div>

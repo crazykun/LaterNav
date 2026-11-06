@@ -483,10 +483,11 @@ func (c *middlewareStubConn) QueryContext(_ context.Context, query string, args 
 	}
 	now := time.Unix(0, 0)
 	return &middlewareStubRows{
-		columns: []string{"id", "username", "email", "password_hash", "role", "status", "created_at", "updated_at"},
+		columns: []string{"id", "username", "nickname", "email", "password_hash", "role", "status", "created_at", "updated_at"},
 		values: [][]driver.Value{{
 			c.config.queryUserByID.ID,
 			c.config.queryUserByID.Username,
+			c.config.queryUserByID.Nickname,
 			c.config.queryUserByID.Email,
 			c.config.queryUserByID.PasswordHash,
 			c.config.queryUserByID.Role,
