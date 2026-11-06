@@ -108,7 +108,7 @@ func main() {
 	r.GET("/oauth/login", func(c *gin.Context) {
 		h, err := getOIDC()
 		if err != nil {
-			c.String(http.StatusServiceUnavailable, "第三方登录尚未配置")
+			c.String(http.StatusServiceUnavailable, "三方登录尚未配置")
 			return
 		}
 		h.Start(c)
@@ -116,7 +116,7 @@ func main() {
 	r.GET("/oauth/callback", func(c *gin.Context) {
 		h, err := getOIDC()
 		if err != nil {
-			c.String(http.StatusServiceUnavailable, "第三方登录尚未配置")
+			c.String(http.StatusServiceUnavailable, "三方登录尚未配置")
 			return
 		}
 		h.Callback(c)

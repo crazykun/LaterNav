@@ -23,6 +23,7 @@ import (
 	"ai-later-nav/internal/middleware"
 	"ai-later-nav/internal/models"
 	"ai-later-nav/internal/services"
+
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/oauth2"
@@ -357,7 +358,7 @@ func truncateOIDCString(s string, max int) string {
 func (h *OIDCHandler) Callback(c *gin.Context) {
 	result, err := h.VerifyCallback(c)
 	if err != nil {
-		c.String(http.StatusBadRequest, "第三方登录失败，请重新登录")
+		c.String(http.StatusBadRequest, "三方登录失败，请重新登录")
 		return
 	}
 	if result.Reauthenticated {

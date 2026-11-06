@@ -106,7 +106,7 @@ func renderOIDCAdmin(c *gin.Context, status int, key, message string) {
 
 	hasSecret := settings["oidc_client_secret"] != ""
 	delete(settings, "oidc_client_secret")
-	data := getCommonAdminData(c, "oidc", "第三方登录", "配置标准 OpenID Connect 登录。")
+	data := getCommonAdminData(c, "oidc", "三方登录", "配置标准 OpenID Connect 登录。")
 	data["settings"] = settings
 	data["hasSecret"] = hasSecret
 	data["csrfToken"] = settingsCSRF(c)

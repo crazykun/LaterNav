@@ -60,7 +60,7 @@ func UpdateProfile(c *gin.Context) {
 	err := services.NewUserService().UpdateProfile(c.GetInt64("user_id"), c.PostForm("username"), c.PostForm("nickname"))
 	switch {
 	case err == nil:
-		c.Redirect(http.StatusSeeOther, "/dashboard")
+		c.Status(http.StatusNoContent)
 	case errors.Is(err, services.ErrUsernameReauthRequired):
 		c.String(http.StatusForbidden, "修改登录名需要重新验证身份，暂不可用")
 	case errors.Is(err, services.ErrUsernameExists):

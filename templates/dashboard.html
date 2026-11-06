@@ -15,9 +15,9 @@
                 <div x-data="{ open: false }" @click.outside="open = false" class="relative">
                     <button @click="open = !open" class="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer">
                         <div class="w-7 h-7 rounded-md bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold">
-                            {{ .username | printf "%.1s" | upper }}
+                            {{ .displayName | printf "%.1s" | upper }}
                         </div>
-                        <span class="hidden sm:inline">{{ .username }}</span>
+                        <span class="hidden sm:inline">{{ .displayName }}</span>
                         <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                         </svg>
@@ -53,17 +53,16 @@
 <dialog id="profile-dialog" x-data="{ username: '', nickname: '', csrf: '', error: '', ready: false }"
     @profile-open="ready = false; error = ''; fetch('/api/profile', {credentials: 'same-origin', cache: 'no-store'}).then(r => { if (!r.ok) throw new Error(); return r.json() }).then(p => { username = p.username; nickname = p.nickname; csrf = p.csrf_token; ready = true }).catch(() => error = '无法加载个人资料，请重试')"
     class="rounded-xl shadow-2xl p-0 w-full max-w-md backdrop:bg-black/50 bg-white dark:bg-gray-800">
-    <form method="post" action="/api/profile" class="p-5 space-y-4">
+    <form method="dialog" class="p-5 space-y-4" @submit.prevent="error=''; fetch('/api/profile', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: new URLSearchParams({username, nickname, csrf_token: csrf})}).then(async r => { if (r.ok || r.redirected) { location.reload(); return } error = await r.text() }).catch(() => error = '保存失败，请重试')">
         <h3 class="text-base font-medium text-gray-900 dark:text-white">修改个人资料</h3>
         <p x-show="error" x-text="error" class="text-red-600" role="alert"></p>
         <label class="block text-sm text-gray-700 dark:text-gray-300">登录名
-            <input name="username" x-model="username" readonly required maxlength="100" class="block w-full rounded border p-2 dark:text-white dark:bg-gray-700">
-            <span class="text-xs text-gray-500">修改登录名需要 OIDC 重新验证，当前暂不可用。</span>
+            <input name="username" x-model="username" readonly required maxlength="100" class="block w-full max-w-full truncate rounded border p-2 dark:text-white dark:bg-gray-700">
+            <span class="text-xs text-gray-500">登录名仅用于登录，不可修改；页面显示使用下方昵称。</span>
         </label>
         <label class="block text-sm text-gray-700 dark:text-gray-300">昵称（可留空）
             <input name="nickname" x-model="nickname" maxlength="100" class="block w-full rounded border p-2 dark:text-white dark:bg-gray-700">
         </label>
-        <input type="hidden" name="csrf_token" :value="csrf">
         <div class="flex gap-3"><button type="submit" :disabled="!ready" class="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50">保存</button>
         <button type="button" @click="$el.closest('dialog').close()" class="px-4 py-2 text-gray-500">取消</button></div>
     </form>

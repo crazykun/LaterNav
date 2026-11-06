@@ -30,6 +30,7 @@ type AdminPageData struct {
 func getCommonAdminData(c *gin.Context, section, title, description string) gin.H {
 	return gin.H{
 		"username":        c.GetString("username"),
+		"displayName":     c.GetString("displayName"),
 		"adminSection":    section,
 		"pageTitle":       title,
 		"pageDescription": description,

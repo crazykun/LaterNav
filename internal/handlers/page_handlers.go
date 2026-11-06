@@ -49,6 +49,9 @@ func (h *PageHandler) renderPage(c *gin.Context, name string, data gin.H) error 
 	if v, exists := c.Get("username"); exists {
 		data["username"] = v
 	}
+	if v, exists := c.Get("displayName"); exists {
+		data["displayName"] = v
+	}
 	if v, exists := c.Get("role"); exists {
 		data["role"] = v
 	}

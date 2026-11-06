@@ -16,7 +16,7 @@
     <a href="/admin/stats" class="admin-nav-item {{ if eq .adminSection "stats" }}admin-nav-item-active{{ end }}">访问统计</a>
     <a href="/admin/users" class="admin-nav-item {{ if eq .adminSection "users" }}admin-nav-item-active{{ end }}">用户管理</a>
     <a href="/admin/settings" class="admin-nav-item {{ if eq .adminSection "settings" }}admin-nav-item-active{{ end }}">系统设置</a>
-    <a href="/admin/oidc" class="admin-nav-item {{ if eq .adminSection "oidc" }}admin-nav-item-active{{ end }}">第三方登录</a>
+    <a href="/admin/oidc" class="admin-nav-item {{ if eq .adminSection "oidc" }}admin-nav-item-active{{ end }}">三方登录</a>
   </nav>
 </aside>
 {{ end }}
@@ -29,7 +29,7 @@
     {{ if .pageDescription }}<p class="admin-page-description">{{ .pageDescription }}</p>{{ end }}
   </div>
   <div style="display: flex; align-items: center; gap: 1rem;">
-    <span class="admin-topbar-user">{{ .username }}</span>
+    <span class="admin-topbar-user">{{ .displayName }}</span>
     <a href="/" class="admin-btn-secondary" style="font-size: 0.8125rem; padding: 0.5rem 1rem;">返回前台</a>
   </div>
 </header>

@@ -16,7 +16,7 @@
                     <p>仅配置一个 OIDC 提供商。Linux.sb 建议：显示名填写 Linux.sb，Discovery URL 为 https://linux.sb/forum_oauth_discovery，Issuer 请以其文档返回的 issuer 为准。旧版 Linux.sb OAuth 配置不会自动迁移。</p>
                     <form action="/admin/oidc" method="POST" class="admin-form-grid">
                         <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
-                        <div><label class="admin-label"><input name="oidc_enabled" type="checkbox" value="true" {{ if eq (index .settings "oidc_enabled") "true" }}checked{{ end }}> 启用第三方登录</label></div>
+                        <div><label class="admin-label"><input name="oidc_enabled" type="checkbox" value="true" {{ if eq (index .settings "oidc_enabled") "true" }}checked{{ end }}> 启用三方登录</label></div>
                         <div><label for="oidc_name" class="admin-label">显示名</label><input id="oidc_name" name="oidc_name" class="admin-input" value="{{ index .settings "oidc_name" }}" placeholder="Linux.sb"></div>
                         <div><label for="oidc_issuer" class="admin-label">Issuer URL</label><input id="oidc_issuer" name="oidc_issuer" type="url" class="admin-input" value="{{ index .settings "oidc_issuer" }}" placeholder="https://linux.sb" {{ if index .settings "oidc_issuer" }}readonly{{ end }}>{{ if index .settings "oidc_issuer" }}<p class="text-xs text-gray-500 mt-1">已锁定。更换需先核查并迁移所有历史绑定（当前界面不可修改）。</p>{{ end }}</div>
                         <div><label for="oidc_discovery_url" class="admin-label">Discovery URL（可选）</label><input id="oidc_discovery_url" name="oidc_discovery_url" type="url" class="admin-input" value="{{ index .settings "oidc_discovery_url" }}" placeholder="https://linux.sb/forum_oauth_discovery"><p class="text-xs text-gray-500 mt-1">留空使用标准 OIDC Discovery 地址。</p></div>

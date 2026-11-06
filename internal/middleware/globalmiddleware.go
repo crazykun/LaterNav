@@ -82,9 +82,18 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		c.Set("user_id", user.ID)
 		c.Set("username", user.Username)
+		c.Set("displayName", displayName(user))
 		c.Set("role", user.Role)
 		c.Next()
 	}
+}
+
+// displayName prefers the user-chosen nickname, falling back to the login name.
+func displayName(u *models.User) string {
+	if u.Nickname != "" {
+		return u.Nickname
+	}
+	return u.Username
 }
 
 func OptionalAuth() gin.HandlerFunc {
@@ -116,6 +125,7 @@ func OptionalAuth() gin.HandlerFunc {
 
 		c.Set("user_id", user.ID)
 		c.Set("username", user.Username)
+		c.Set("displayName", displayName(user))
 		c.Set("role", user.Role)
 		c.Next()
 	}
