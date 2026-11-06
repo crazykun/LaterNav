@@ -12,8 +12,7 @@
             <main class="admin-content">
                 <section class="admin-surface admin-form-surface max-w-3xl">
                     {{ template "admin-flash" . }}
-                    <p>更换 Issuer 或 Client ID 可能导致现有第三方账户错误绑定。已有配置不可直接更改；迁移前请先核查并妥善处理所有历史绑定。</p>
-                    <p>仅配置一个 OIDC 提供商。Linux.sb 建议：显示名填写 Linux.sb，Discovery URL 为 https://linux.sb/forum_oauth_discovery，Issuer 请以其文档返回的 issuer 为准。旧版 Linux.sb OAuth 配置不会自动迁移。</p>
+                    <p></p>
                     <form action="/admin/oidc" method="POST" class="admin-form-grid">
                         <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
                         <div><label class="admin-label"><input name="oidc_enabled" type="checkbox" value="true" {{ if eq (index .settings "oidc_enabled") "true" }}checked{{ end }}> 启用三方登录</label></div>
