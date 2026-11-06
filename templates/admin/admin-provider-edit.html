@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <title>{{ if .isNew }}新增{{ else }}编辑{{ end }}登录方式 - {{ .SiteName }}</title>
+    {{ template "admin-head" . }}
+</head>
+<body class="admin-body">
+    <div class="admin-shell">
+        {{ template "admin-sidebar" . }}
+        <div class="admin-main">
+            {{ template "admin-topbar" . }}
+            <main class="admin-content">
+                <section class="admin-surface admin-form-surface max-w-3xl">
+                    {{ template "admin-flash" . }}
+                    <p class="text-sm text-gray-500 mb-3">类型、Issuer、端点与 Client ID 创建后锁定（防止已有账户被错误绑定）。GitHub 等非 OIDC 厂商选择 github 类型，使用授权/令牌/用户信息三个端点。</p>
+                    <form method="post" action="{{ if .isNew }}/admin/oidc/new{{ else }}/admin/oidc/{{ .provider.Slug }}{{ end }}" class="admin-form-grid">
+                        <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
+                        <div><label class="admin-label"><input name="enabled" type="checkbox" value="true" {{ if .provider.Enabled }}checked{{ end }}> 启用该登录方式</label></div>
+                        <div><label for="name" class="admin-label">显示名</label><input id="name" name="name" class="admin-input" value="{{ .provider.Name }}" required></div>
+                        <div><label for="slug" class="admin-label">Slug（路由标识）</label><input id="slug" name="slug" class="admin-input" value="{{ .provider.Slug }}" pattern="[a-z0-9][a-z0-9-]*" {{ if not .isNew }}readonly{{ end }} required><p class="text-xs text-gray-500 mt-1">小写字母/数字/连字符；回调路径为 /oauth/&lt;slug&gt;/callback。</p></div>
+                        <div><label for="type" class="admin-label">类型</label>
+                            {{ if .isNew }}
+                            <select id="type" name="type" class="admin-input">
+                                <option value="oidc" {{ if eq .provider.Type "oidc" }}selected{{ end }}>OIDC（标准 OpenID Connect）</option>
+                                <option value="github" {{ if eq .provider.Type "github" }}selected{{ end }}>GitHub（OAuth2 + userinfo）</option>
+                            </select>
+                            {{ else }}
+                            <input class="admin-input" value="{{ .provider.Type }}" readonly>
+                            <input type="hidden" name="type" value="{{ .provider.Type }}">
+                            {{ end }}
+                        </div>
+                        {{ if eq .provider.Type "oidc" }}
+                        <div><label for="issuer" class="admin-label">Issuer URL</label><input id="issuer" name="issuer" type="url" class="admin-input" value="{{ .provider.Issuer }}" placeholder="https://accounts.google.com" {{ if not .isNew }}readonly{{ end }}></div>
+                        <div><label for="discovery_url" class="admin-label">Discovery URL（可选）</label><input id="discovery_url" name="discovery_url" type="url" class="admin-input" value="{{ .provider.DiscoveryURL }}" {{ if not .isNew }}readonly{{ end }}><p class="text-xs text-gray-500 mt-1">留空使用标准 &lt;issuer&gt;/.well-known/openid-configuration。</p></div>
+                        {{ else }}
+                        <div><label for="authorize_url" class="admin-label">授权端点</label><input id="authorize_url" name="authorize_url" type="url" class="admin-input" value="{{ .provider.AuthorizeURL }}" {{ if not .isNew }}readonly{{ end }}></div>
+                        <div><label for="token_url" class="admin-label">令牌端点</label><input id="token_url" name="token_url" type="url" class="admin-input" value="{{ .provider.TokenURL }}" {{ if not .isNew }}readonly{{ end }}></div>
+                        <div><label for="userinfo_url" class="admin-label">用户信息端点</label><input id="userinfo_url" name="userinfo_url" type="url" class="admin-input" value="{{ .provider.UserinfoURL }}" {{ if not .isNew }}readonly{{ end }}></div>
+                        {{ end }}
+                        <div><label for="client_id" class="admin-label">Client ID</label><input id="client_id" name="client_id" class="admin-input" value="{{ .provider.ClientID }}" {{ if not .isNew }}readonly{{ end }}></div>
+                        <div><label for="client_secret" class="admin-label">Client Secret</label><input id="client_secret" name="client_secret" type="password" class="admin-input" autocomplete="new-password"><p class="text-xs text-gray-500 mt-1">留空保持现有密钥。{{ if .hasSecret }}已设置密钥。{{ else }}尚未设置密钥。{{ end }}</p></div>
+                        <div><label for="redirect_url" class="admin-label">回调地址</label><input id="redirect_url" name="redirect_url" type="url" class="admin-input" value="{{ .provider.RedirectURL }}"><p class="text-xs text-gray-500 mt-1">需与厂商后台注册的回调完全一致，路径为 /oauth/{{ .provider.Slug }}/callback。</p></div>
+                        {{ if eq .provider.Type "oidc" }}
+                        <div><label for="scopes" class="admin-label">Scopes（可选）</label><input id="scopes" name="scopes" class="admin-input" value="{{ .provider.Scopes }}" placeholder="openid profile email"><p class="text-xs text-gray-500 mt-1">空格分隔；留空默认 openid profile email。</p></div>
+                        {{ end }}
+                        <div><label for="sort" class="admin-label">排序（小在前）</label><input id="sort" name="sort" type="number" class="admin-input" value="{{ .provider.Sort }}"></div>
+                        <div class="admin-form-actions">
+                            <button type="submit" class="admin-btn-primary">保存</button>
+                            <a href="/admin/oidc" class="admin-btn-secondary">返回列表</a>
+                        </div>
+                    </form>
+                </section>
+            </main>
+        </div>
+    </div>
+</body>
+</html>

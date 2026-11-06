@@ -151,12 +151,16 @@ func (h *APIHandler) Login(c *gin.Context) {
 	username := strings.TrimSpace(c.PostForm("username"))
 	password := c.PostForm("password")
 
+	loginData := func(msg string) gin.H {
+		data := gin.H{"error": msg}
+		if providers, err := services.GetOAuthProviderService().LoginProviders(); err == nil {
+			data["oauthProviders"] = providers
+		}
+		return data
+	}
+
 	if username == "" || password == "" {
-		c.HTML(http.StatusOK, "partials/login-form.html", gin.H{
-			"oidcEnabled": oidcEnabled(),
-			"oidcName":    oidcName(),
-			"error":       "请输入用户名和密码",
-		})
+		c.HTML(http.StatusOK, "partials/login-form.html", loginData("请输入用户名和密码"))
 		return
 	}
 
@@ -166,21 +170,13 @@ func (h *APIHandler) Login(c *gin.Context) {
 		if err == services.ErrUserBlocked {
 			msg = "账号已被禁用"
 		}
-		c.HTML(http.StatusOK, "partials/login-form.html", gin.H{
-			"oidcEnabled": oidcEnabled(),
-			"oidcName":    oidcName(),
-			"error":       msg,
-		})
+		c.HTML(http.StatusOK, "partials/login-form.html", loginData(msg))
 		return
 	}
 
 	token, err := middleware.GenerateToken(user)
 	if err != nil {
-		c.HTML(http.StatusOK, "partials/login-form.html", gin.H{
-			"oidcEnabled": oidcEnabled(),
-			"oidcName":    oidcName(),
-			"error":       "登录失败，请重试",
-		})
+		c.HTML(http.StatusOK, "partials/login-form.html", loginData("登录失败，请重试"))
 		return
 	}
 

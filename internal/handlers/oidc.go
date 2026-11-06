@@ -29,18 +29,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-func oidcEnabled() bool {
-	s := services.GetSettingService()
-	return s.GetSetting("oidc_enabled") == "true" && s.GetSetting("oidc_issuer") != "" && s.GetSetting("oidc_client_id") != "" && s.GetSetting("oidc_client_secret") != "" && s.GetSetting("oidc_redirect_url") != ""
-}
-func oidcName() string {
-	name := services.GetSettingService().GetSetting("oidc_name")
-	if name == "" {
-		return "OIDC"
-	}
-	return name
-}
-
 // The issuer must identify the same Linux.sb identity namespace as existing accounts.
 type OIDCConfig struct{ Issuer, DiscoveryURL, ClientID, ClientSecret, RedirectURL string }
 
@@ -128,8 +116,15 @@ func (t oidcLimitTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 
 // NewOIDCHandler performs discovery and constructs a handler. Use a fixed issuer per identity namespace.
 func NewOIDCHandler(ctx context.Context, cfg OIDCConfig) (*OIDCHandler, error) {
+	return newOIDCHandlerWithScopes(ctx, cfg, nil)
+}
+
+func newOIDCHandlerWithScopes(ctx context.Context, cfg OIDCConfig, scopes []string) (*OIDCHandler, error) {
 	if !oidcURL(cfg.Issuer) || !oidcRedirectURL(cfg.RedirectURL) || cfg.ClientID == "" || cfg.ClientSecret == "" {
 		return nil, errors.New("invalid OIDC configuration")
+	}
+	if len(scopes) == 0 {
+		scopes = []string{oidc.ScopeOpenID, "profile", "email"}
 	}
 	client := oidcHTTPClient()
 	ctx = oidc.ClientContext(ctx, client)
@@ -173,7 +168,7 @@ func NewOIDCHandler(ctx context.Context, cfg OIDCConfig) (*OIDCHandler, error) {
 	if !oidcURL(ep.AuthURL) || !oidcURL(ep.TokenURL) || !oidcURL(jwksURL) {
 		return nil, errors.New("invalid OIDC metadata")
 	}
-	return &OIDCHandler{config: cfg, provider: p, client: client, oauth: oauth2.Config{ClientID: cfg.ClientID, ClientSecret: cfg.ClientSecret, RedirectURL: cfg.RedirectURL, Endpoint: ep, Scopes: []string{oidc.ScopeOpenID, "profile", "email"}}, transactions: make(map[string]oidcTransaction)}, nil
+	return &OIDCHandler{config: cfg, provider: p, client: client, oauth: oauth2.Config{ClientID: cfg.ClientID, ClientSecret: cfg.ClientSecret, RedirectURL: cfg.RedirectURL, Endpoint: ep, Scopes: scopes}, transactions: make(map[string]oidcTransaction)}, nil
 }
 func (h *OIDCHandler) stateCookieName() string {
 	if strings.HasPrefix(h.config.RedirectURL, "https://") {
@@ -355,6 +350,8 @@ func truncateOIDCString(s string, max int) string {
 	return s
 }
 
+// Callback is superseded by OAuthRegistry.Callback, which derives the identity
+// key from the provider row so multiple providers cannot collide.
 func (h *OIDCHandler) Callback(c *gin.Context) {
 	result, err := h.VerifyCallback(c)
 	if err != nil {
@@ -365,13 +362,7 @@ func (h *OIDCHandler) Callback(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
-	providerKey := sha256.Sum256([]byte(result.Issuer + "\x00" + h.config.ClientID))
-	provider := "oidc_" + base64.RawURLEncoding.EncodeToString(providerKey[:])
-	if result.Issuer == "https://linux.sb" {
-		// Existing Linux.sb identities use the legacy provider key; do not silently fork them.
-		// Preserve the namespace so existing Linux.sb users keep their account and data.
-		provider = "linux.sb"
-	}
+	provider := services.IdentityKey("oidc", result.Issuer, "", h.config.ClientID)
 	user, err := databaseOIDCUser(provider, result.Subject, result.PreferredUsername, result.DisplayName)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)

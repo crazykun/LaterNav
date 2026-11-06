@@ -35,8 +35,9 @@ func (h *PageHandler) renderPage(c *gin.Context, name string, data gin.H) error 
 	if data == nil {
 		data = gin.H{}
 	}
-	data["oidcEnabled"] = oidcEnabled()
-	data["oidcName"] = oidcName()
+	if providers, err := services.GetOAuthProviderService().LoginProviders(); err == nil {
+		data["oauthProviders"] = providers
+	}
 	if v, exists := c.Get("Copyright"); exists {
 		data["Copyright"] = v
 	}

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <title>三方登录 - {{ .SiteName }}</title>
+    {{ template "admin-head" . }}
+</head>
+<body class="admin-body">
+    <div class="admin-shell">
+        {{ template "admin-sidebar" . }}
+        <div class="admin-main">
+            {{ template "admin-topbar" . }}
+            <main class="admin-content">
+                <section class="admin-surface">
+                    {{ template "admin-flash" . }}
+                    <div class="flex items-center justify-between mb-4">
+                        <p class="text-sm text-gray-500">已启用的登录方式会显示在登录页。Issuer / Client ID 创建后锁定，防止已有账户被错误绑定。</p>
+                        <div class="flex gap-2">
+                            <a href="/admin/oidc/new?preset=google" class="admin-btn-secondary">+ Google</a>
+                            <a href="/admin/oidc/new?preset=github" class="admin-btn-secondary">+ GitHub</a>
+                            <a href="/admin/oidc/new?preset=linuxdo" class="admin-btn-secondary">+ Linux.do</a>
+                            <a href="/admin/oidc/new" class="admin-btn-primary">+ 自定义 OIDC</a>
+                        </div>
+                    </div>
+                    <table class="admin-table">
+                        <thead>
+                            <tr><th>显示名</th><th>Slug</th><th>类型</th><th>回调路径</th><th>状态</th><th>操作</th></tr>
+                        </thead>
+                        <tbody>
+                            {{ range .providers }}
+                            <tr>
+                                <td>{{ .Name }}</td>
+                                <td><code>{{ .Slug }}</code></td>
+                                <td>{{ .Type }}</td>
+                                <td><code>/oauth/{{ .Slug }}/callback</code></td>
+                                <td>{{ if .Enabled }}<span class="text-green-600">已启用</span>{{ else }}<span class="text-gray-400">已停用</span>{{ end }}</td>
+                                <td class="flex gap-2">
+                                    <a href="/admin/oidc/{{ .Slug }}" class="admin-btn-secondary">编辑</a>
+                                    <form method="post" action="/admin/oidc/{{ .Slug }}/delete" onsubmit="return confirm('确认删除？已有账户绑定时将被拒绝。')">
+                                        <input type="hidden" name="csrf_token" value="{{ $.csrfToken }}">
+                                        <button type="submit" class="admin-btn-danger">删除</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {{ else }}
+                            <tr><td colspan="6" class="text-center text-gray-400 py-6">尚未配置任何登录方式</td></tr>
+                            {{ end }}
+                        </tbody>
+                    </table>
+                </section>
+            </main>
+        </div>
+    </div>
+</body>
+</html>

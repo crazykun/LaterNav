@@ -7,21 +7,14 @@ import (
 	"ai-later-nav/internal/middleware"
 	"ai-later-nav/internal/services"
 	"ai-later-nav/internal/web"
-	"context"
 	"embed"
-	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
 	"os"
-	"sync"
 
 	"github.com/gin-gonic/gin"
 )
-
-func oidcSettingConfig(ss *services.SettingService) handlers.OIDCConfig {
-	return handlers.OIDCConfig{Issuer: ss.GetSetting("oidc_issuer"), DiscoveryURL: ss.GetSetting("oidc_discovery_url"), ClientID: ss.GetSetting("oidc_client_id"), ClientSecret: ss.GetSetting("oidc_client_secret"), RedirectURL: ss.GetSetting("oidc_redirect_url")}
-}
 
 //go:embed templates/*
 var templateFS embed.FS
@@ -61,6 +54,9 @@ func main() {
 	if err := settingService.LoadCache(); err != nil {
 		log.Printf("Warning: could not load settings: %v", err)
 	}
+	if err := services.GetOAuthProviderService().MigrateLegacySettings(settingService); err != nil {
+		log.Printf("Warning: could not migrate legacy OIDC settings: %v", err)
+	}
 
 	r := gin.New()
 	// Authorization codes and state must not be written to Gin's request log.
@@ -84,43 +80,21 @@ func main() {
 	pageHandler := handlers.NewPageHandler(pageTemplates)
 	apiHandler := handlers.NewAPIHandler()
 	adminHandler := handlers.NewAdminHandler()
-	var oidcHandler *handlers.OIDCHandler
-	var oidcConfigKey string
-	var oidcMu sync.Mutex
-	getOIDC := func() (*handlers.OIDCHandler, error) {
-		oidcMu.Lock()
-		defer oidcMu.Unlock()
-		if settingService.GetSetting("oidc_enabled") != "true" {
-			return nil, fmt.Errorf("oidc disabled")
-		}
-		cfg := oidcSettingConfig(settingService)
-		key := fmt.Sprintf("%s\x00%s\x00%s\x00%s\x00%s", cfg.Issuer, cfg.DiscoveryURL, cfg.ClientID, cfg.ClientSecret, cfg.RedirectURL)
-		if oidcHandler != nil && oidcConfigKey == key {
-			return oidcHandler, nil
-		}
-		h, err := handlers.NewOIDCHandler(context.Background(), cfg)
-		if err != nil {
-			return nil, err
-		}
-		oidcHandler, oidcConfigKey = h, key
-		return h, nil
-	}
+	oauthRegistry := handlers.NewOAuthRegistry(services.GetOAuthProviderService())
+	// Legacy single-provider URLs keep working for the already-registered
+	// Linux.sb callback; new providers use /oauth/<slug>/*.
 	r.GET("/oauth/login", func(c *gin.Context) {
-		h, err := getOIDC()
-		if err != nil {
-			c.String(http.StatusServiceUnavailable, "三方登录尚未配置")
-			return
-		}
-		h.Start(c)
+		c.Redirect(http.StatusMovedPermanently, "/oauth/default/login")
 	})
 	r.GET("/oauth/callback", func(c *gin.Context) {
-		h, err := getOIDC()
-		if err != nil {
-			c.String(http.StatusServiceUnavailable, "三方登录尚未配置")
-			return
+		target := "/oauth/default/callback"
+		if c.Request.URL.RawQuery != "" {
+			target += "?" + c.Request.URL.RawQuery
 		}
-		h.Callback(c)
+		c.Redirect(http.StatusMovedPermanently, target)
 	})
+	r.GET("/oauth/:slug/login", oauthRegistry.StartLogin)
+	r.GET("/oauth/:slug/callback", oauthRegistry.Callback)
 
 	r.GET("/setup", pageHandler.SetupPage)
 	r.POST("/api/setup", apiHandler.Setup)
@@ -178,8 +152,12 @@ func main() {
 		admin.GET("/stats", adminHandler.AdminStats)
 		admin.GET("/settings", adminHandler.AdminSettingsForm)
 		admin.POST("/settings", adminHandler.AdminSettingsSave)
-		admin.GET("/oidc", adminHandler.AdminOIDCForm)
-		admin.POST("/oidc", adminHandler.AdminOIDCSave)
+		admin.GET("/oidc", adminHandler.AdminProviderList)
+		admin.GET("/oidc/new", adminHandler.AdminProviderNew)
+		admin.POST("/oidc/new", adminHandler.AdminProviderSave)
+		admin.GET("/oidc/:slug", adminHandler.AdminProviderEdit)
+		admin.POST("/oidc/:slug", adminHandler.AdminProviderSave)
+		admin.POST("/oidc/:slug/delete", adminHandler.AdminProviderDelete)
 	}
 
 	port := config.AppConfig.Port
