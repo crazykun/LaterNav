@@ -532,7 +532,6 @@ func settingsCSRF(c *gin.Context) string {
 
 func renderAdminSettings(c *gin.Context, messageKey, message string) {
 	settings := services.GetSettingService().GetAllSettings()
-	delete(settings, "oauth_linux_client_secret")
 	delete(settings, "oidc_client_secret")
 	common := getCommonAdminData(c, "settings", "系统设置", "维护站点信息和登录设置。")
 	common["settings"] = settings

@@ -31,13 +31,17 @@ func TestOIDCValidateConfiguration(t *testing.T) {
 }
 
 func TestOIDCIdentityBindingAndSecret(t *testing.T) {
-	form := url.Values{"oidc_enabled": {"true"}, "oidc_name": {"name"}, "oidc_issuer": {"https://id.example"}, "oidc_client_id": {"new"}, "oidc_redirect_url": {"https://app.example/oauth/callback"}}
+	// Locked fields render read-only; a tampered submission must be ignored,
+	// not rejected, so the rest of the form still saves.
+	form := url.Values{"oidc_enabled": {"true"}, "oidc_name": {"name"}, "oidc_issuer": {"https://evil.example"}, "oidc_client_id": {"new"}, "oidc_redirect_url": {"https://app.example/oauth/callback"}}
 	old := map[string]string{"oidc_issuer": "https://id.example", "oidc_client_id": "old", "oidc_client_secret": "never reveal"}
-	if _, err := oidcUpdates(form, old, func() (bool, error) { return false, nil }); err == nil {
-		t.Fatal("changed client ID accepted")
+	updates, err := oidcUpdates(form, old, func() (bool, error) { return false, nil })
+	if err != nil || updates["oidc_issuer"] != "https://id.example" || updates["oidc_client_id"] != "old" {
+		t.Fatalf("locked fields not enforced: %v %v", updates, err)
 	}
 	form.Set("oidc_client_id", "old")
-	updates, err := oidcUpdates(form, old, func() (bool, error) { return false, nil })
+	form.Set("oidc_issuer", "https://id.example")
+	updates, err = oidcUpdates(form, old, func() (bool, error) { return false, nil })
 	if err != nil {
 		t.Fatal(err)
 	}

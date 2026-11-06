@@ -22,7 +22,7 @@ func adminSettingsRouter() *gin.Engine {
 }
 
 func TestAdminSettingsRejectsMissingCSRF(t *testing.T) {
-	req := httptest.NewRequest(http.MethodPost, "/admin/settings", strings.NewReader("oauth_linux_redirect_url=http%3A%2F%2Flocalhost%3A8080%2Foauth%2Fcallback"))
+	req := httptest.NewRequest(http.MethodPost, "/admin/settings", strings.NewReader("site_name=AI+Later"))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w := httptest.NewRecorder()
 	adminSettingsRouter().ServeHTTP(w, req)

@@ -24,6 +24,15 @@ func oidcUpdates(form url.Values, old map[string]string, identitiesExist func() 
 	redirect := strings.TrimSpace(form.Get("oidc_redirect_url"))
 	discovery := strings.TrimSpace(form.Get("oidc_discovery_url"))
 	secret := form.Get("oidc_client_secret")
+	// Locked fields are rendered read-only; ignore the submitted value entirely
+	// once configured, so invisible differences (whitespace, trailing slash)
+	// can never be mistaken for a re-binding attempt.
+	if old["oidc_issuer"] != "" {
+		issuer = old["oidc_issuer"]
+	}
+	if old["oidc_client_id"] != "" {
+		client = old["oidc_client_id"]
+	}
 	if (issuer != "" && !oidcAdminURL(issuer, true)) || (redirect != "" && !oidcAdminURL(redirect, false)) || (discovery != "" && !oidcAdminURL(discovery, false)) {
 		return nil, errors.New("Issuer、Discovery 和回调地址必须是有效的 HTTPS URL（本地开发允许 localhost HTTP），不得包含用户信息、查询参数或片段。")
 	}
@@ -36,11 +45,8 @@ func oidcUpdates(form url.Values, old map[string]string, identitiesExist func() 
 			return nil, errors.New("回调路径必须为 /oauth/callback。")
 		}
 	}
-	if issuer != old["oidc_issuer"] || client != old["oidc_client_id"] {
-		if old["oidc_issuer"] != "" || old["oidc_client_id"] != "" {
-			return nil, errors.New("已有配置的 Issuer 和 Client ID 不可更改，否则可能导致账户错误绑定；请先进行受控迁移。")
-		}
-		if issuer != "" || client != "" {
+	if old["oidc_issuer"] == "" && old["oidc_client_id"] == "" && (issuer != "" || client != "") {
+		{
 			exists, err := identitiesExist()
 			if err != nil || exists {
 				return nil, errors.New("无法确认不存在历史第三方账户绑定，禁止初始化 Issuer 和 Client ID；请先进行受控迁移。")
@@ -100,8 +106,6 @@ func renderOIDCAdmin(c *gin.Context, status int, key, message string) {
 
 	hasSecret := settings["oidc_client_secret"] != ""
 	delete(settings, "oidc_client_secret")
-	// Do not expose legacy credentials to the template either.
-	delete(settings, "oauth_linux_client_secret")
 	data := getCommonAdminData(c, "oidc", "第三方登录", "配置标准 OpenID Connect 登录。")
 	data["settings"] = settings
 	data["hasSecret"] = hasSecret
