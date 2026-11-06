@@ -35,6 +35,7 @@ func (h *PageHandler) renderPage(c *gin.Context, name string, data gin.H) error 
 	if data == nil {
 		data = gin.H{}
 	}
+	data["oauthEnabled"] = oauthEnabled()
 	if v, exists := c.Get("Copyright"); exists {
 		data["Copyright"] = v
 	}

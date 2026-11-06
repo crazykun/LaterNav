@@ -1,8 +1,12 @@
 package handlers
 
 import (
+	"ai-later-nav/internal/config"
 	"ai-later-nav/internal/models"
 	"ai-later-nav/internal/services"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"log"
 	"net/http"
 	"net/url"
@@ -516,36 +520,70 @@ func (h *AdminHandler) renderAdminUsers(c *gin.Context, statusCode int, errorMsg
 	c.HTML(statusCode, "admin-users.html", common)
 }
 
-func (h *AdminHandler) AdminSettingsForm(c *gin.Context) {
-	ss := services.GetSettingService()
-	settings := ss.GetAllSettings()
+func settingsCSRF(c *gin.Context) string {
+	token, err := c.Cookie("token")
+	if err != nil || token == "" {
+		return ""
+	}
+	mac := hmac.New(sha256.New, []byte(config.AppConfig.JWT.Secret))
+	mac.Write([]byte("admin-settings:" + token))
+	return hex.EncodeToString(mac.Sum(nil))
+}
 
-	common := getCommonAdminData(c, "settings", "系统设置", "维护站点名称和版权信息。")
+func renderAdminSettings(c *gin.Context, messageKey, message string) {
+	settings := services.GetSettingService().GetAllSettings()
+	delete(settings, "oauth_linux_client_secret")
+	if settings["oauth_linux_client_id"] == "" {
+		settings["oauth_linux_client_id"] = "foa_3_LbaAtj2WGHnKmNDgUw55pE"
+	}
+	if settings["oauth_linux_redirect_url"] == "" {
+		settings["oauth_linux_redirect_url"] = "http://localhost:8080/oauth/callback"
+	}
+	common := getCommonAdminData(c, "settings", "系统设置", "维护站点信息和登录设置。")
 	common["settings"] = settings
+	common["csrfToken"] = settingsCSRF(c)
+	if messageKey != "" {
+		common[messageKey] = message
+	}
 	c.HTML(http.StatusOK, "admin-settings.html", common)
 }
 
+func (h *AdminHandler) AdminSettingsForm(c *gin.Context) {
+	renderAdminSettings(c, "", "")
+}
+
 func (h *AdminHandler) AdminSettingsSave(c *gin.Context) {
+	expected := settingsCSRF(c)
+	if expected == "" || !hmac.Equal([]byte(expected), []byte(c.PostForm("csrf_token"))) {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
 	ss := services.GetSettingService()
 	updates := map[string]string{
 		"site_name": strings.TrimSpace(c.PostForm("site_name")),
 		"copyright": strings.TrimSpace(c.PostForm("copyright")),
 	}
 
-	if err := ss.UpdateMultiple(updates); err != nil {
-		settings := ss.GetAllSettings()
-		common := getCommonAdminData(c, "settings", "系统设置", "维护站点名称和版权信息。")
-		common["settings"] = settings
-		common["error"] = "保存失败: " + err.Error()
-		c.HTML(http.StatusOK, "admin-settings.html", common)
+	redirect := strings.TrimSpace(c.PostForm("oauth_linux_redirect_url"))
+	u, err := url.Parse(redirect)
+	if err != nil || u.Hostname() == "" || u.User != nil || u.Opaque != "" || u.Path != "/oauth/callback" || u.RawPath != "" || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" || !(u.Scheme == "https" || (u.Scheme == "http" && u.Hostname() == "localhost")) {
+		renderAdminSettings(c, "error", "回调地址必须使用 HTTPS 或 localhost HTTP，路径必须为 /oauth/callback。")
 		return
 	}
-
-	settings := ss.GetAllSettings()
-	common := getCommonAdminData(c, "settings", "系统设置", "维护站点名称和版权信息。")
-	common["settings"] = settings
-	common["success"] = "设置已保存"
-	c.HTML(http.StatusOK, "admin-settings.html", common)
+	updates["oauth_linux_redirect_url"] = redirect
+	updates["oauth_linux_client_id"] = strings.TrimSpace(c.PostForm("oauth_linux_client_id"))
+	updates["oauth_linux_enabled"] = "false"
+	if c.PostForm("oauth_linux_enabled") == "true" {
+		updates["oauth_linux_enabled"] = "true"
+	}
+	if secret := c.PostForm("oauth_linux_client_secret"); secret != "" {
+		updates["oauth_linux_client_secret"] = secret
+	}
+	if err := ss.UpdateMultiple(updates); err != nil {
+		renderAdminSettings(c, "error", "保存失败，请稍后重试。")
+		return
+	}
+	renderAdminSettings(c, "success", "设置已保存")
 }
 
 func (h *AdminHandler) AdminStats(c *gin.Context) {

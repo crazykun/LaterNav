@@ -54,7 +54,9 @@ func main() {
 		log.Printf("Warning: could not load settings: %v", err)
 	}
 
-	r := gin.Default()
+	r := gin.New()
+	// Authorization codes and state must not be written to Gin's request log.
+	r.Use(gin.LoggerWithConfig(gin.LoggerConfig{SkipPaths: []string{"/oauth/callback"}}), gin.Recovery())
 
 	tmplSub, _ := fs.Sub(templateFS, "templates")
 	pageTemplates := web.BuildPageTemplates(tmplSub)
@@ -74,6 +76,22 @@ func main() {
 	pageHandler := handlers.NewPageHandler(pageTemplates)
 	apiHandler := handlers.NewAPIHandler()
 	adminHandler := handlers.NewAdminHandler()
+	oauthHandler := func() *handlers.OAuthHandler {
+		clientID := settingService.GetSetting("oauth_linux_client_id")
+		if settingService.GetSetting("oauth_linux_enabled") != "true" {
+			clientID = ""
+		}
+		return &handlers.OAuthHandler{
+			ClientID:     clientID,
+			ClientSecret: settingService.GetSetting("oauth_linux_client_secret"),
+			RedirectURL:  settingService.GetSetting("oauth_linux_redirect_url"),
+			AuthorizeURL: "https://linux.sb/forum_oauth_authorize",
+			TokenURL:     "https://linux.sb/forum_oauth_token",
+			UserInfoURL:  "https://linux.sb/forum_oauth_userinfo",
+		}
+	}
+	r.GET("/oauth/login", func(c *gin.Context) { oauthHandler().Start(c) })
+	r.GET("/oauth/callback", func(c *gin.Context) { oauthHandler().Callback(c) })
 
 	r.GET("/setup", pageHandler.SetupPage)
 	r.POST("/api/setup", apiHandler.Setup)

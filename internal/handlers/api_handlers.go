@@ -153,7 +153,8 @@ func (h *APIHandler) Login(c *gin.Context) {
 
 	if username == "" || password == "" {
 		c.HTML(http.StatusOK, "partials/login-form.html", gin.H{
-			"error": "请输入用户名和密码",
+			"oauthEnabled": oauthEnabled(),
+			"error":        "请输入用户名和密码",
 		})
 		return
 	}
@@ -165,7 +166,8 @@ func (h *APIHandler) Login(c *gin.Context) {
 			msg = "账号已被禁用"
 		}
 		c.HTML(http.StatusOK, "partials/login-form.html", gin.H{
-			"error": msg,
+			"oauthEnabled": oauthEnabled(),
+			"error":        msg,
 		})
 		return
 	}
@@ -173,7 +175,8 @@ func (h *APIHandler) Login(c *gin.Context) {
 	token, err := middleware.GenerateToken(user)
 	if err != nil {
 		c.HTML(http.StatusOK, "partials/login-form.html", gin.H{
-			"error": "登录失败，请重试",
+			"oauthEnabled": oauthEnabled(),
+			"error":        "登录失败，请重试",
 		})
 		return
 	}

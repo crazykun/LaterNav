@@ -68,6 +68,8 @@
         </div>
     </div>
     
+    {{ if .oauthEnabled }}<a href="/oauth/login" class="block w-full text-center border border-gray-300 dark:border-gray-600 rounded-lg py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium">使用 Linux.sb 登录</a>{{ end }}
+
     <p class="text-center text-sm text-gray-600 dark:text-gray-400">
         还没有账号？<a href="/register" class="text-blue-500 hover:text-blue-600 dark:text-blue-400 font-medium">立即注册</a>
     </p>
