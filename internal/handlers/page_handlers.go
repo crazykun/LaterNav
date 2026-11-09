@@ -13,16 +13,18 @@ import (
 )
 
 type PageHandler struct {
-	siteService   *services.SiteService
-	navService    *services.NavService
-	pageTemplates map[string]*template.Template
+	siteService       *services.SiteService
+	navService        *services.NavService
+	submissionService *services.SiteSubmissionService
+	pageTemplates     map[string]*template.Template
 }
 
 func NewPageHandler(pageTemplates map[string]*template.Template) *PageHandler {
 	return &PageHandler{
-		siteService:   services.NewSiteService(),
-		navService:    services.NewNavService(),
-		pageTemplates: pageTemplates,
+		siteService:       services.NewSiteService(),
+		navService:        services.NewNavService(),
+		submissionService: services.NewSiteSubmissionService(),
+		pageTemplates:     pageTemplates,
 	}
 }
 
@@ -188,10 +190,12 @@ func (h *PageHandler) UserDashboard(c *gin.Context) {
 	}
 	user, _ := userService.GetByID(userID)
 	initialCredentials := user != nil && user.PasswordHash == "!"
+	mySubmissions, _ := h.submissionService.ListMine(userID, 20)
 	copyright, _ := c.Get("Copyright")
 	if err := h.renderPage(c, "dashboard.html", gin.H{
 		"favoriteIDs":        favoriteIDs,
 		"favoriteSites":      favoriteSites,
+		"mySubmissions":      mySubmissions,
 		"Copyright":          copyright,
 		"isLoggedIn":         true,
 		"username":           c.GetString("username"),

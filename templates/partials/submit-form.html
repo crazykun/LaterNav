@@ -1,0 +1,82 @@
+{{ define "partials/submit-form.html" }}
+<form hx-post="/api/submissions" hx-target="#submit-container" hx-swap="innerHTML" class="space-y-5">
+    <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
+
+    {{ if .error }}
+    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        {{ .error }}
+    </div>
+    {{ end }}
+    {{ if .success }}
+    <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-600 dark:text-green-400 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        {{ .success }}
+    </div>
+    {{ end }}
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div>
+            <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">站点名称 <span class="text-red-500">*</span></label>
+            <input type="text" id="name" name="name" required maxlength="150"
+                   placeholder="例如：ChatGPT"
+                   value="{{ with .values }}{{ .Name }}{{ end }}"
+                   class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+        </div>
+        <div>
+            <label for="url" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">站点地址 <span class="text-red-500">*</span></label>
+            <input type="text" id="url" name="url" required maxlength="512"
+                   placeholder="例如：https://example.com"
+                   value="{{ with .values }}{{ .URL }}{{ end }}"
+                   class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+        </div>
+    </div>
+
+    <div>
+        <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">站点描述</label>
+        <textarea id="description" name="description" rows="3" maxlength="500"
+                  placeholder="一句话介绍该站点的主要功能（最多500字）"
+                  class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">{{ with .values }}{{ .Description }}{{ end }}</textarea>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div>
+            <label for="category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">分类</label>
+            <input type="text" id="category" name="category" list="category-list" maxlength="100"
+                   placeholder="选填，如：AI 绘图"
+                   value="{{ with .values }}{{ .Category }}{{ end }}"
+                   class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+            <datalist id="category-list">
+                {{ range .categories }}
+                <option value="{{ . }}"></option>
+                {{ end }}
+            </datalist>
+        </div>
+        <div>
+            <label for="tags" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">标签</label>
+            <input type="text" id="tags" name="tags" maxlength="500"
+                   placeholder="选填，逗号分隔，如：聊天,写作"
+                   value="{{ with .values }}{{ .Tags }}{{ end }}"
+                   class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+        </div>
+    </div>
+
+    <div>
+        <label for="logo" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Logo 地址</label>
+        <input type="text" id="logo" name="logo" maxlength="512"
+               placeholder="选填，站点图标图片链接"
+               value="{{ with .values }}{{ .Logo }}{{ end }}"
+               class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">留空则自动显示名称首字图标</p>
+    </div>
+
+    <button type="submit"
+            class="w-full bg-gradient-to-r from-blue-500 to-indigo-500 text-white py-3 rounded-lg hover:from-blue-600 hover:to-indigo-600 transition-all font-medium shadow-lg shadow-blue-500/25">
+        提交投稿
+    </button>
+</form>
+{{ end }}

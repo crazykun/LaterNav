@@ -124,6 +124,8 @@ func main() {
 		auth.POST("/api/auth/set-initial-credentials", apiHandler.SetInitialCredentials)
 		auth.POST("/api/auth/change-password", apiHandler.ChangePassword)
 		auth.POST("/api/favorites/:id", apiHandler.ToggleFavorite)
+		auth.GET("/submit", pageHandler.SubmitPage)
+		auth.POST("/api/submissions", handlers.CreateSubmission)
 	}
 
 	admin := r.Group("/admin")
@@ -149,6 +151,9 @@ func main() {
 		admin.POST("/users/:id/role", adminHandler.AdminUpdateUserRole)
 		admin.POST("/users/:id/password", adminHandler.AdminResetUserPassword)
 		admin.POST("/users/:id/status", adminHandler.AdminUpdateUserStatus)
+		admin.GET("/submissions", adminHandler.AdminSubmissions)
+		admin.POST("/submissions/:id/approve", adminHandler.AdminApproveSubmission)
+		admin.POST("/submissions/:id/reject", adminHandler.AdminRejectSubmission)
 		admin.GET("/stats", adminHandler.AdminStats)
 		admin.GET("/settings", adminHandler.AdminSettingsForm)
 		admin.POST("/settings", adminHandler.AdminSettingsSave)

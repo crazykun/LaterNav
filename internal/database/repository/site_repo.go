@@ -109,6 +109,25 @@ func (r *SiteRepository) GetByID(id int64) (*models.Site, error) {
 	return &s, nil
 }
 
+// GetByURL 按 URL 精确匹配未删除站点，用于投稿查重。
+func (r *SiteRepository) GetByURL(url string) (*models.Site, error) {
+	var s models.Site
+	err := r.db.QueryRow(`
+		SELECT id, name, url, description, logo, category, rating, visits, featured, deleted, created_at, updated_at
+		FROM sites WHERE url = ? AND deleted = 0
+		LIMIT 1
+	`, url).Scan(&s.ID, &s.Name, &s.URL, &s.Description, &s.Logo,
+		&s.Category, &s.Rating, &s.Visits, &s.Featured, &s.Deleted,
+		&s.CreatedAt, &s.UpdatedAt)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("query site by url: %w", err)
+	}
+	return &s, nil
+}
+
 // GetByIDs 批量获取多个站点，避免 N+1 查询
 func (r *SiteRepository) GetByIDs(ids []int64) ([]models.Site, error) {
 	if len(ids) == 0 {

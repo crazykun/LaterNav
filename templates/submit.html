@@ -1,0 +1,18 @@
+{{ template "layout.html" . }}
+
+{{ define "content" }}
+<div class="min-h-[80vh] bg-gray-50 dark:bg-gray-900 transition-colors duration-200 py-12 px-4">
+    <div class="max-w-2xl mx-auto">
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">投稿站点</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400">推荐好用的 AI 工具，审核通过后将在首页展示</p>
+        </div>
+        <div id="submit-container" class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 sm:p-8">
+            {{ template "partials/submit-form.html" . }}
+        </div>
+        <p class="text-center text-xs text-gray-400 dark:text-gray-500 mt-4">
+            提交即表示你确认该站点内容健康、合法，不含违规信息
+        </p>
+    </div>
+</div>
+{{ end }}

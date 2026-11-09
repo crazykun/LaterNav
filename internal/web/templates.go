@@ -9,6 +9,23 @@ import (
 var funcMap = template.FuncMap{
 	"upper": strings.ToUpper,
 	"lower": strings.ToLower,
+	// splitTags 把逗号分隔的标签字符串拆成去空去重的切片，供审核页展示。
+	"splitTags": func(raw string) []string {
+		seen := make(map[string]struct{})
+		var tags []string
+		for _, t := range strings.Split(raw, ",") {
+			t = strings.TrimSpace(t)
+			if t == "" {
+				continue
+			}
+			if _, ok := seen[t]; ok {
+				continue
+			}
+			seen[t] = struct{}{}
+			tags = append(tags, t)
+		}
+		return tags
+	},
 }
 
 func BuildPageTemplates(root fs.FS) map[string]*template.Template {
@@ -17,10 +34,11 @@ func BuildPageTemplates(root fs.FS) map[string]*template.Template {
 		"login.html":     template.Must(template.New("login.html").Funcs(funcMap).ParseFS(root, "layout.html", "login.html", "partials/*.html")),
 		"register.html":  template.Must(template.New("register.html").Funcs(funcMap).ParseFS(root, "layout.html", "register.html", "partials/*.html")),
 		"dashboard.html": template.Must(template.New("dashboard.html").Funcs(funcMap).ParseFS(root, "layout.html", "dashboard.html", "partials/*.html")),
+		"submit.html":    template.Must(template.New("submit.html").Funcs(funcMap).ParseFS(root, "layout.html", "submit.html", "partials/*.html")),
 		"setup.html":     template.Must(template.New("setup.html").Funcs(funcMap).ParseFS(root, "layout.html", "setup.html", "partials/*.html")),
 	}
 }
 
 func BuildSharedTemplates(root fs.FS) *template.Template {
-	return template.Must(template.New("shared.html").Funcs(funcMap).ParseFS(root, "error.html", "admin/admin-index.html", "admin/admin-sites.html", "admin/admin-add-site.html", "admin/admin-edit-site.html", "admin/admin-nav.html", "admin/admin-nav-form.html", "admin/admin-users.html", "admin/admin-settings.html", "admin/admin-providers.html", "admin/admin-provider-edit.html", "admin/admin-stats.html", "partials/*.html"))
+	return template.Must(template.New("shared.html").Funcs(funcMap).ParseFS(root, "error.html", "admin/admin-index.html", "admin/admin-sites.html", "admin/admin-add-site.html", "admin/admin-edit-site.html", "admin/admin-nav.html", "admin/admin-nav-form.html", "admin/admin-users.html", "admin/admin-settings.html", "admin/admin-providers.html", "admin/admin-provider-edit.html", "admin/admin-stats.html", "admin/admin-submissions.html", "partials/*.html"))
 }

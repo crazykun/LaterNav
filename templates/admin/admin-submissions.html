@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <title>站点审核 - {{ .SiteName }}</title>
+    {{ template "admin-head" . }}
+</head>
+<body class="admin-body">
+    <div class="admin-shell">
+        {{ template "admin-sidebar" . }}
+        <div class="admin-main">
+            {{ template "admin-topbar" . }}
+            <main class="admin-content">
+                {{ template "admin-flash" . }}
+
+                <section class="admin-toolbar-row">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <input type="hidden" id="currentStatus" value="{{ .statusFilter }}">
+                        <a href="/admin/submissions?status=pending"
+                           class="{{ if eq .statusFilter "pending" }}admin-btn-primary{{ else }}admin-btn-secondary{{ end }}"
+                           style="white-space: nowrap;">待审核 {{ index .statusCounts "pending" }}</a>
+                        <a href="/admin/submissions?status=approved"
+                           class="{{ if eq .statusFilter "approved" }}admin-btn-primary{{ else }}admin-btn-secondary{{ end }}"
+                           style="white-space: nowrap;">已通过 {{ index .statusCounts "approved" }}</a>
+                        <a href="/admin/submissions?status=rejected"
+                           class="{{ if eq .statusFilter "rejected" }}admin-btn-primary{{ else }}admin-btn-secondary{{ end }}"
+                           style="white-space: nowrap;">已驳回 {{ index .statusCounts "rejected" }}</a>
+                    </div>
+                    <span class="admin-chip">共 {{ len .submissions }} 条记录</span>
+                </section>
+
+                <section class="admin-surface overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="admin-table min-w-full">
+                            <thead>
+                                <tr>
+                                    <th class="admin-table-head text-left">站点</th>
+                                    <th class="admin-table-head text-left">提交人</th>
+                                    <th class="admin-table-head text-left">分类 / 标签</th>
+                                    <th class="admin-table-head text-left">投稿时间</th>
+                                    <th class="admin-table-head text-center">状态</th>
+                                    <th class="admin-table-head text-right">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{ range .submissions }}
+                                <tr>
+                                    <td class="admin-table-cell">
+                                        <div class="text-sm font-medium text-gray-900">{{ .Name }}</div>
+                                        <a href="{{ .URL }}" target="_blank" rel="noopener noreferrer" class="text-sm text-blue-600 hover:underline break-all">{{ .URL }}</a>
+                                        {{ if .Description }}
+                                        <div class="text-sm text-gray-500 mt-1">{{ .Description }}</div>
+                                        {{ end }}
+                                        {{ if eq .Status "rejected" }}
+                                        <div class="text-xs text-red-500 mt-1">驳回原因：{{ if .RejectReason }}{{ .RejectReason }}{{ else }}未填写{{ end }}</div>
+                                        {{ end }}
+                                    </td>
+                                    <td class="admin-table-cell">
+                                        <div class="text-sm text-gray-900">{{ .SubmitterName }}</div>
+                                    </td>
+                                    <td class="admin-table-cell">
+                                        <div class="text-sm text-gray-500">{{ if .Category }}{{ .Category }}{{ else }}—{{ end }}</div>
+                                        {{ if .Tags }}
+                                        <div class="flex flex-wrap gap-1 mt-1">
+                                            {{ range $tag := splitTags .Tags }}
+                                            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-600 border border-blue-100">{{ $tag }}</span>
+                                            {{ end }}
+                                        </div>
+                                        {{ end }}
+                                    </td>
+                                    <td class="admin-table-cell">
+                                        <div class="text-sm text-gray-500 whitespace-nowrap">{{ .CreatedAt.Format "2006-01-02 15:04" }}</div>
+                                    </td>
+                                    <td class="admin-table-cell text-center">
+                                        {{ if eq .Status "pending" }}
+                                        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-600 border border-yellow-100">待审核</span>
+                                        {{ else if eq .Status "approved" }}
+                                        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600 border border-green-100">已通过</span>
+                                        {{ else }}
+                                        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600 border border-red-100">已驳回</span>
+                                        {{ end }}
+                                    </td>
+                                    <td class="admin-table-cell text-right">
+                                        <div class="inline-flex items-center gap-2">
+                                            {{ if eq .Status "pending" }}
+                                            <form action="/admin/submissions/{{ .ID }}/approve" method="POST" class="inline">
+                                                <input type="hidden" name="status" value="{{ $.statusFilter }}">
+                                                <button type="submit" class="admin-btn-primary" style="font-size: 0.8125rem; padding: 0.375rem 0.875rem;">通过</button>
+                                            </form>
+                                            <button type="button" class="admin-btn-danger" style="font-size: 0.8125rem; padding: 0.375rem 0.875rem;"
+                                                onclick="showRejectModal({{ .ID }}, '{{ .Name }}')">驳回</button>
+                                            {{ else if eq .Status "approved" }}
+                                            <span class="text-xs text-gray-400">已写入站点库</span>
+                                            {{ else }}
+                                            <span class="text-xs text-gray-400">—</span>
+                                            {{ end }}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {{ else }}
+                                <tr>
+                                    <td class="admin-table-cell text-center text-sm text-gray-400" colspan="6" style="padding: 2.5rem 0;">暂无投稿记录</td>
+                                </tr>
+                                {{ end }}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- 驳回原因模态框 -->
+    <div id="rejectModal" class="admin-modal-overlay" style="display:none">
+        <div class="admin-modal">
+            <div class="admin-modal-icon">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <h3 class="admin-modal-title">驳回投稿</h3>
+            <p class="admin-modal-text">确定要驳回 <span id="rejectModalName" class="font-semibold text-gray-900"></span> 吗？</p>
+            <form id="rejectModalForm" method="POST" class="mt-3">
+                <input type="hidden" name="status" id="rejectModalStatus" value="">
+                <textarea name="reason" rows="3" maxlength="500" class="admin-textarea w-full"
+                          placeholder="驳回原因（选填，会员可在个人中心看到）"></textarea>
+                <div class="admin-modal-actions">
+                    <button type="button" class="admin-btn-secondary" onclick="closeRejectModal()">取消</button>
+                    <button type="submit" class="admin-btn-danger">确认驳回</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    function showRejectModal(id, name) {
+        document.getElementById('rejectModalName').textContent = name;
+        document.getElementById('rejectModalForm').action = '/admin/submissions/' + id + '/reject';
+        document.getElementById('rejectModalStatus').value = document.getElementById('currentStatus').value;
+        document.getElementById('rejectModal').style.display = '';
+    }
+    function closeRejectModal() {
+        document.getElementById('rejectModal').style.display = 'none';
+    }
+    document.getElementById('rejectModal').addEventListener('click', function(e) {
+        if (e.target === this) closeRejectModal();
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeRejectModal();
+    });
+    </script>
+</body>
+</html>

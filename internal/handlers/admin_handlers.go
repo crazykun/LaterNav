@@ -28,13 +28,19 @@ type AdminPageData struct {
 
 // getCommonAdminData returns common template data for admin pages
 func getCommonAdminData(c *gin.Context, section, title, description string) gin.H {
+	pendingSubmissions, err := services.NewSiteSubmissionService().CountPending()
+	if err != nil {
+		log.Printf("Failed to count pending submissions: %v", err)
+		pendingSubmissions = 0
+	}
 	return gin.H{
-		"username":        c.GetString("username"),
-		"displayName":     c.GetString("displayName"),
-		"adminSection":    section,
-		"pageTitle":       title,
-		"pageDescription": description,
-		"SiteName":        c.GetString("SiteName"),
+		"username":               c.GetString("username"),
+		"displayName":            c.GetString("displayName"),
+		"adminSection":           section,
+		"pageTitle":              title,
+		"pageDescription":        description,
+		"SiteName":               c.GetString("SiteName"),
+		"pendingSubmissionCount": pendingSubmissions,
 	}
 }
 
@@ -51,16 +57,18 @@ type AdminIndexData struct {
 }
 
 type AdminHandler struct {
-	siteService *services.SiteService
-	userService *services.UserService
-	navService  *services.NavService
+	siteService       *services.SiteService
+	userService       *services.UserService
+	navService        *services.NavService
+	submissionService *services.SiteSubmissionService
 }
 
 func NewAdminHandler() *AdminHandler {
 	return &AdminHandler{
-		siteService: services.NewSiteService(),
-		userService: services.NewUserService(),
-		navService:  services.NewNavService(),
+		siteService:       services.NewSiteService(),
+		userService:       services.NewUserService(),
+		navService:        services.NewNavService(),
+		submissionService: services.NewSiteSubmissionService(),
 	}
 }
 
@@ -605,4 +613,98 @@ func (h *AdminHandler) AdminStats(c *gin.Context) {
 	common := getCommonAdminData(c, "stats", "访问统计", "按站点查看 PV / UV 趋势概览。")
 	common["sites"] = sitesWithStats
 	c.HTML(http.StatusOK, "admin-stats.html", common)
+}
+
+// validSubmissionStatus 校验审核页状态过滤参数。
+func validSubmissionStatus(status string) (string, bool) {
+	switch status {
+	case "", models.SubmissionStatusPending:
+		return models.SubmissionStatusPending, true
+	case models.SubmissionStatusApproved, models.SubmissionStatusRejected:
+		return status, true
+	default:
+		return "", false
+	}
+}
+
+// renderSubmissionList 渲染审核列表页，可附操作失败的错误提示。
+func (h *AdminHandler) renderSubmissionList(c *gin.Context, status, errMsg string) {
+	submissions, err := h.submissionService.ListByStatus(status)
+	if err != nil {
+		log.Printf("Failed to list submissions: %v", err)
+		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+			"error": "加载投稿列表失败",
+		})
+		return
+	}
+
+	statusCounts, err := h.submissionService.CountByStatus()
+	if err != nil {
+		log.Printf("Failed to count submissions: %v", err)
+		statusCounts = map[string]int64{}
+	}
+
+	common := getCommonAdminData(c, "submissions", "站点审核", "审核会员投稿，通过后写入站点库。")
+	common["submissions"] = submissions
+	common["statusFilter"] = status
+	common["statusCounts"] = statusCounts
+	if errMsg != "" {
+		common["error"] = errMsg
+	}
+	c.HTML(http.StatusOK, "admin-submissions.html", common)
+}
+
+func (h *AdminHandler) AdminSubmissions(c *gin.Context) {
+	status, ok := validSubmissionStatus(c.Query("status"))
+	if !ok {
+		c.HTML(http.StatusBadRequest, "error.html", gin.H{
+			"error": "无效的投稿状态",
+		})
+		return
+	}
+	h.renderSubmissionList(c, status, "")
+}
+
+// AdminApproveSubmission 审核通过：按投稿内容写入 sites 表。
+func (h *AdminHandler) AdminApproveSubmission(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.HTML(http.StatusBadRequest, "error.html", gin.H{
+			"error": "无效的投稿 ID",
+		})
+		return
+	}
+
+	status := models.SubmissionStatusPending
+	if s, ok := validSubmissionStatus(c.PostForm("status")); ok {
+		status = s
+	}
+
+	if err := h.submissionService.Approve(id, c.GetInt64("user_id")); err != nil {
+		h.renderSubmissionList(c, status, "审核失败: "+err.Error())
+		return
+	}
+	c.Redirect(http.StatusFound, "/admin/submissions?status="+status)
+}
+
+// AdminRejectSubmission 驳回投稿，可附驳回原因。
+func (h *AdminHandler) AdminRejectSubmission(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.HTML(http.StatusBadRequest, "error.html", gin.H{
+			"error": "无效的投稿 ID",
+		})
+		return
+	}
+
+	status := models.SubmissionStatusPending
+	if s, ok := validSubmissionStatus(c.PostForm("status")); ok {
+		status = s
+	}
+
+	if err := h.submissionService.Reject(id, c.GetInt64("user_id"), c.PostForm("reason")); err != nil {
+		h.renderSubmissionList(c, status, "驳回失败: "+err.Error())
+		return
+	}
+	c.Redirect(http.StatusFound, "/admin/submissions?status="+status)
 }
