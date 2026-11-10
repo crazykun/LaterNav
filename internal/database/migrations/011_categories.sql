@@ -16,11 +16,8 @@ FROM sites s
 WHERE s.category <> ''
   AND NOT EXISTS (SELECT 1 FROM categories c WHERE c.name = s.category);
 
--- 为历史分类生成稳定排序值；重命名不改变顺序。
-UPDATE categories c
-JOIN (
-    SELECT id, ROW_NUMBER() OVER (ORDER BY name, id) * 10 AS new_sort
-    FROM categories
-) ranked ON ranked.id = c.id
-SET c.sort_order = ranked.new_sort
-WHERE c.sort_order = 0;
+-- 兼容 MySQL 5.7：按名称和自增 ID 生成排序值，不使用窗口函数。
+-- 新建分类时 sort_order = MAX(sort_order) + 10，因此 ID 即稳定的初始顺序。
+UPDATE categories
+SET sort_order = id * 10
+WHERE sort_order = 0;
