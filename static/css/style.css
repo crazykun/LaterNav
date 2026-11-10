@@ -442,12 +442,17 @@ html {
 
 .admin-user-search {
     display: flex;
+    flex-wrap: nowrap;
     gap: 0.5rem;
     align-items: center;
 }
 
+/* Definite flex-basis keeps the input out of intrinsic sizing, and nowrap
+   guarantees the search button never drops to a second line. */
 .admin-user-search .admin-input {
+    flex: 0 1 280px;
     width: 280px;
+    min-width: 120px;
     padding: 0.5rem 0.875rem;
 }
 
