@@ -479,6 +479,14 @@ html {
     white-space: nowrap;
 }
 
+/* Cap site descriptions at two lines so list rows stay compact. */
+.admin-site-desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
 .admin-oauth-identity {
     display: flex;
     align-items: flex-start;
