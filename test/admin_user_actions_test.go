@@ -28,23 +28,27 @@ func TestAdminUsersTemplateRendersStatusActionsAndSelfRestrictions(t *testing.T)
 	gin.SetMode(gin.TestMode)
 	tmpl := web.BuildSharedTemplates(os.DirFS("../templates"))
 
-	users := []*models.User{
-		{
+	users := []*models.AdminUser{
+		{User: models.User{
 			ID:        1,
 			Username:  "admin",
+			Nickname:  "管理员昵称",
 			Email:     "admin@example.com",
 			Role:      "admin",
 			Status:    "active",
 			CreatedAt: time.Date(2026, 4, 29, 10, 0, 0, 0, time.UTC),
-		},
-		{
+		}, OAuthIdentities: []models.OAuthIdentity{
+			{Provider: "oidc_key", ProviderName: "Linux.sb", DisplayName: "三方管理员", PreferredUsername: "admin-oauth", Email: "oauth-admin@example.com", Picture: "https://example.com/admin.png"},
+			{Provider: "github", ProviderName: "GitHub", PreferredUsername: "octoadmin"},
+		}},
+		{User: models.User{
 			ID:        2,
 			Username:  "blocked-user",
 			Email:     "blocked@example.com",
 			Role:      "user",
 			Status:    "blocked",
 			CreatedAt: time.Date(2026, 4, 29, 11, 0, 0, 0, time.UTC),
-		},
+		}},
 	}
 
 	var out strings.Builder
@@ -57,6 +61,11 @@ func TestAdminUsersTemplateRendersStatusActionsAndSelfRestrictions(t *testing.T)
 		"currentUserID":   int64(1),
 		"error":           "操作失败",
 		"users":           users,
+		"total":           int64(2),
+		"page":            1,
+		"pageSize":        20,
+		"totalPages":      1,
+		"query":           "管理员",
 	})
 	if err != nil {
 		t.Fatalf("ExecuteTemplate failed: %v", err)
@@ -73,8 +82,17 @@ func TestAdminUsersTemplateRendersStatusActionsAndSelfRestrictions(t *testing.T)
 		"showPwdModal( 2 ",
 		"pwdModal",
 		"pwdModalForm",
-		"当前账号不可执行此操作",
+		"当前账号不可改角色或状态",
 		"admin-alert-error",
+		"管理员昵称",
+		"三方管理员",
+		"oauth-admin@example.com",
+		"https://example.com/admin.png",
+		"octoadmin",
+		"邮箱未提供",
+		"未绑定",
+		`value="管理员"`,
+		`name="page" value="1"`,
 	} {
 		if !strings.Contains(html, needle) {
 			t.Fatalf("admin-users.html missing %q in rendered output: %s", needle, html)
@@ -87,6 +105,23 @@ func TestAdminUsersTemplateRendersStatusActionsAndSelfRestrictions(t *testing.T)
 	} {
 		if strings.Contains(html, forbidden) {
 			t.Fatalf("admin-users.html rendered self action %q: %s", forbidden, html)
+		}
+	}
+}
+
+func TestAdminUsersTemplateRendersPagination(t *testing.T) {
+	tmpl := web.BuildSharedTemplates(os.DirFS("../templates"))
+	var out strings.Builder
+	err := tmpl.ExecuteTemplate(&out, "admin-users.html", map[string]any{
+		"users": []any{}, "total": int64(65), "page": 3, "pageSize": 20, "totalPages": 4, "query": "AI 工具",
+	})
+	if err != nil {
+		t.Fatalf("ExecuteTemplate failed: %v", err)
+	}
+	html := out.String()
+	for _, needle := range []string{"共 65 个用户", "上一页", "下一页", `aria-current="page">3</a>`, "page=2", "page=4", "q=AI&#43;%E5%B7%A5%E5%85%B7"} {
+		if !strings.Contains(html, needle) {
+			t.Fatalf("admin-users.html missing pagination %q: %s", needle, html)
 		}
 	}
 }
@@ -108,7 +143,7 @@ func TestAdminUsersUpdateUserRoleRedirectsOnSuccess(t *testing.T) {
 	h := handlers.NewAdminHandler()
 	r := newAdminUserTestRouter(h, 1)
 
-	form := url.Values{"role": {"admin"}}
+	form := url.Values{"role": {"admin"}, "q": {"成员 昵称"}, "page": {"2"}}
 	req := httptest.NewRequest(http.MethodPost, "/admin/users/2/role", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w := httptest.NewRecorder()
@@ -118,8 +153,8 @@ func TestAdminUsersUpdateUserRoleRedirectsOnSuccess(t *testing.T) {
 	if w.Code != http.StatusFound {
 		t.Fatalf("status = %d, want %d, body=%s", w.Code, http.StatusFound, w.Body.String())
 	}
-	if location := w.Header().Get("Location"); location != "/admin/users" {
-		t.Fatalf("redirect location = %q, want /admin/users", location)
+	if location := w.Header().Get("Location"); location != "/admin/users?page=2&q=%E6%88%90%E5%91%98+%E6%98%B5%E7%A7%B0" {
+		t.Fatalf("redirect location = %q, want filtered page", location)
 	}
 }
 
@@ -173,7 +208,7 @@ func TestAdminUsersUpdateUserStatusRendersErrorOnSelfBlock(t *testing.T) {
 	h := handlers.NewAdminHandler()
 	r := newAdminUserTestRouter(h, 1)
 
-	form := url.Values{"status": {"blocked"}}
+	form := url.Values{"status": {"blocked"}, "q": {"member"}, "page": {"1"}}
 	req := httptest.NewRequest(http.MethodPost, "/admin/users/1/status", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w := httptest.NewRecorder()
@@ -380,8 +415,25 @@ func (c *adminUserStubConn) ExecContext(_ context.Context, query string, args []
 
 func (c *adminUserStubConn) QueryContext(_ context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 	switch {
-	case strings.Contains(query, "FROM users ORDER BY id DESC"):
-		return newAdminUserRows(c.config.allUsers), nil
+	case strings.Contains(query, "SELECT COUNT(*) FROM site_submissions"):
+		return &adminUserStubRows{columns: []string{"count"}, values: [][]driver.Value{{int64(0)}}}, nil
+	case strings.Contains(query, "SELECT COUNT(*) FROM users"):
+		return &adminUserStubRows{columns: []string{"count"}, values: [][]driver.Value{{int64(len(c.config.allUsers))}}}, nil
+	case strings.Contains(query, "FROM users") && strings.Contains(query, "LIMIT ? OFFSET ?"):
+		users := c.config.allUsers
+		if len(args) == 5 {
+			queryText := strings.Trim(args[0].Value.(string), "%")
+			filtered := make([]*models.User, 0, len(users))
+			for _, user := range users {
+				if strings.Contains(user.Username, queryText) || strings.Contains(user.Nickname, queryText) || strings.Contains(user.Email, queryText) {
+					filtered = append(filtered, user)
+				}
+			}
+			users = filtered
+		}
+		return newAdminUserPageRows(users), nil
+	case strings.Contains(query, "FROM oauth_identities oi"):
+		return &adminUserStubRows{columns: []string{"user_id", "provider", "name", "type", "preferred_username", "display_name", "picture", "email"}}, nil
 	case strings.Contains(query, "FROM users WHERE id = ?"):
 		if len(args) != 1 {
 			return nil, fmt.Errorf("expected 1 arg for user by id, got %d", len(args))
@@ -409,6 +461,27 @@ func (c *adminUserStubConn) QueryContext(_ context.Context, query string, args [
 	default:
 		return nil, fmt.Errorf("unexpected query: %s", query)
 	}
+}
+
+func newAdminUserPageRows(users []*models.User) *adminUserStubRows {
+	rows := &adminUserStubRows{
+		columns: []string{"id", "username", "nickname", "email", "role", "status", "created_at", "updated_at"},
+	}
+	for _, user := range users {
+		now := time.Date(2026, 4, 29, 12, 0, 0, 0, time.UTC)
+		createdAt := user.CreatedAt
+		if createdAt.IsZero() {
+			createdAt = now
+		}
+		updatedAt := user.UpdatedAt
+		if updatedAt.IsZero() {
+			updatedAt = now
+		}
+		rows.values = append(rows.values, []driver.Value{
+			user.ID, user.Username, user.Nickname, user.Email, user.Role, user.Status, createdAt, updatedAt,
+		})
+	}
+	return rows
 }
 
 func newAdminUserRows(users []*models.User) *adminUserStubRows {

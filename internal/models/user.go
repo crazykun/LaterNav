@@ -19,3 +19,53 @@ type UserClaims struct {
 	Username string `json:"username"`
 	Role     string `json:"role"`
 }
+
+// DisplayName prefers the user-chosen nickname over the login name.
+func (u User) DisplayName() string {
+	if u.Nickname != "" {
+		return u.Nickname
+	}
+	return u.Username
+}
+
+// OAuthIdentity is the profile persisted for one linked third-party login.
+type OAuthIdentity struct {
+	Provider          string `json:"provider"`
+	ProviderName      string `json:"provider_name"`
+	ProviderType      string `json:"provider_type"`
+	PreferredUsername string `json:"preferred_username"`
+	DisplayName       string `json:"display_name"`
+	Picture           string `json:"picture"`
+	Email             string `json:"email"`
+}
+
+func (i OAuthIdentity) Name() string {
+	if i.DisplayName != "" {
+		return i.DisplayName
+	}
+	if i.PreferredUsername != "" {
+		return i.PreferredUsername
+	}
+	return "未提供"
+}
+
+func (i OAuthIdentity) ProviderLabel() string {
+	if i.ProviderName != "" {
+		return i.ProviderName
+	}
+	return i.Provider
+}
+
+// AdminUser combines account data with all linked identities for the admin list.
+type AdminUser struct {
+	User
+	OAuthIdentities []OAuthIdentity
+}
+
+type UserPage struct {
+	Users      []*AdminUser
+	Total      int64
+	Page       int
+	PageSize   int
+	TotalPages int
+}

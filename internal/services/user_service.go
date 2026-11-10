@@ -186,6 +186,44 @@ func (s *UserService) GetAllUsers() ([]*models.User, error) {
 	return s.userRepo.GetAllUsers()
 }
 
+// GetAdminUsers returns one page and its linked identities without N+1 queries.
+func (s *UserService) GetAdminUsers(query string, page, pageSize int) (*models.UserPage, error) {
+	query = strings.TrimSpace(query)
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+	total, err := s.userRepo.CountUsersMatching(query)
+	if err != nil {
+		return nil, err
+	}
+	totalPages := int((total + int64(pageSize) - 1) / int64(pageSize))
+	if totalPages == 0 {
+		totalPages = 1
+	}
+	if page > totalPages {
+		page = totalPages
+	}
+	users, err := s.userRepo.ListUsersPage(query, pageSize, (page-1)*pageSize)
+	if err != nil {
+		return nil, err
+	}
+	userIDs := make([]int64, len(users))
+	for i, user := range users {
+		userIDs[i] = user.ID
+	}
+	identities, err := s.userRepo.ListOAuthIdentitiesByUserIDs(userIDs)
+	if err != nil {
+		return nil, err
+	}
+	for _, user := range users {
+		user.OAuthIdentities = identities[user.ID]
+	}
+	return &models.UserPage{Users: users, Total: total, Page: page, PageSize: pageSize, TotalPages: totalPages}, nil
+}
+
 func (s *UserService) HasAnyUser() (bool, error) {
 	count, err := s.userRepo.CountUsers()
 	if err != nil {

@@ -124,6 +124,10 @@ func TestAdminUsersTemplateUsesSharedShell(t *testing.T) {
 		"pageTitle":       "用户管理",
 		"pageDescription": "查看用户账号信息。",
 		"users":           []any{},
+		"total":           int64(0),
+		"page":            1,
+		"pageSize":        20,
+		"totalPages":      1,
 	})
 	if err != nil {
 		t.Fatalf("ExecuteTemplate failed: %v", err)

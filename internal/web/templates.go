@@ -3,12 +3,49 @@ package web
 import (
 	"html/template"
 	"io/fs"
+	"net/url"
+	"strconv"
 	"strings"
 )
 
 var funcMap = template.FuncMap{
 	"upper": strings.ToUpper,
 	"lower": strings.ToLower,
+	"add":   func(a, b int) int { return a + b },
+	"sub":   func(a, b int) int { return a - b },
+	"userPageURL": func(query string, page int) string {
+		params := url.Values{}
+		if query != "" {
+			params.Set("q", query)
+		}
+		if page > 1 {
+			params.Set("page", strconv.Itoa(page))
+		}
+		if encoded := params.Encode(); encoded != "" {
+			return "/admin/users?" + encoded
+		}
+		return "/admin/users"
+	},
+	// pageNumbers returns a compact, bounded window around the current page.
+	"pageNumbers": func(current, total int) []int {
+		start := current - 2
+		if start < 1 {
+			start = 1
+		}
+		end := start + 4
+		if end > total {
+			end = total
+		}
+		start = end - 4
+		if start < 1 {
+			start = 1
+		}
+		pages := make([]int, 0, end-start+1)
+		for page := start; page <= end; page++ {
+			pages = append(pages, page)
+		}
+		return pages
+	},
 	// splitTags 把逗号分隔的标签字符串拆成去空去重的切片，供审核页展示。
 	"splitTags": func(raw string) []string {
 		seen := make(map[string]struct{})

@@ -471,7 +471,7 @@ func (h *AdminHandler) AdminUpdateUserRole(c *gin.Context) {
 		return
 	}
 
-	c.Redirect(http.StatusFound, "/admin/users")
+	c.Redirect(http.StatusFound, "/admin/users"+adminUserMutationListQuery(c))
 }
 
 func (h *AdminHandler) AdminResetUserPassword(c *gin.Context) {
@@ -492,7 +492,7 @@ func (h *AdminHandler) AdminResetUserPassword(c *gin.Context) {
 		return
 	}
 
-	c.Redirect(http.StatusFound, "/admin/users")
+	c.Redirect(http.StatusFound, "/admin/users"+adminUserMutationListQuery(c))
 }
 
 func (h *AdminHandler) AdminUpdateUserStatus(c *gin.Context) {
@@ -508,11 +508,54 @@ func (h *AdminHandler) AdminUpdateUserStatus(c *gin.Context) {
 		return
 	}
 
-	c.Redirect(http.StatusFound, "/admin/users")
+	c.Redirect(http.StatusFound, "/admin/users"+adminUserMutationListQuery(c))
+}
+
+// adminUserListPage reads only the supported list filters from a request.
+func adminUserListPage(c *gin.Context) (string, int) {
+	page, err := strconv.Atoi(c.Query("page"))
+	if err != nil || page < 1 {
+		page = 1
+	}
+	return strings.TrimSpace(c.Query("q")), page
+}
+
+// adminUserListQuery builds a safe return query for both GET pages and POST actions.
+func adminUserListQuery(query string, page int, withQuestionMark bool) string {
+	params := url.Values{}
+	if query != "" {
+		params.Set("q", query)
+	}
+	if page > 1 {
+		params.Set("page", strconv.Itoa(page))
+	}
+	encoded := params.Encode()
+	if encoded != "" && withQuestionMark {
+		return "?" + encoded
+	}
+	return encoded
+}
+
+func adminUserMutationListQuery(c *gin.Context) string {
+	query := strings.TrimSpace(c.PostForm("q"))
+	page, err := strconv.Atoi(c.PostForm("page"))
+	if err != nil || page < 1 {
+		page = 1
+	}
+	return adminUserListQuery(query, page, true)
 }
 
 func (h *AdminHandler) renderAdminUsers(c *gin.Context, statusCode int, errorMsg string) {
-	users, err := h.userService.GetAllUsers()
+	query, requestedPage := adminUserListPage(c)
+	// Mutation errors re-render a POST request, whose filters live in form fields.
+	if c.Request.Method == http.MethodPost {
+		query = strings.TrimSpace(c.PostForm("q"))
+		requestedPage, _ = strconv.Atoi(c.PostForm("page"))
+		if requestedPage < 1 {
+			requestedPage = 1
+		}
+	}
+	userPage, err := h.userService.GetAdminUsers(query, requestedPage, 20)
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error": "加载用户失败",
@@ -520,8 +563,13 @@ func (h *AdminHandler) renderAdminUsers(c *gin.Context, statusCode int, errorMsg
 		return
 	}
 
-	common := getCommonAdminData(c, "users", "用户管理", "查看注册用户和角色信息。")
-	common["users"] = users
+	common := getCommonAdminData(c, "users", "用户管理", "搜索会员资料，查看三方登录身份和账号状态。")
+	common["users"] = userPage.Users
+	common["total"] = userPage.Total
+	common["page"] = userPage.Page
+	common["pageSize"] = userPage.PageSize
+	common["totalPages"] = userPage.TotalPages
+	common["query"] = query
 	common["currentUserID"] = c.GetInt64("user_id")
 	if errorMsg != "" {
 		common["error"] = errorMsg

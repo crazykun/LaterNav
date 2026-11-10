@@ -12,7 +12,12 @@
             <main class="admin-content">
                 <section class="admin-toolbar-row">
                     <div class="admin-toolbar-meta">
-                        <span class="admin-chip">{{ len .users }} 个用户</span>
+                        <span class="admin-chip">共 {{ .total }} 个用户</span>
+                        <form action="/admin/users" method="GET" class="admin-user-search">
+                            <input type="search" name="q" value="{{ .query }}" placeholder="搜索登录名 / 昵称 / 邮箱" class="admin-input" aria-label="搜索用户">
+                            <button type="submit" class="admin-btn-primary">搜索</button>
+                            {{ if .query }}<a href="/admin/users" class="admin-btn-secondary">清空</a>{{ end }}
+                        </form>
                     </div>
                 </section>
 
@@ -23,66 +28,93 @@
                             <thead>
                                 <tr>
                                     <th class="admin-table-head text-left">ID</th>
-                                    <th class="admin-table-head text-left">用户名</th>
-                                    <th class="admin-table-head text-left">邮箱</th>
+                                    <th class="admin-table-head text-left">会员</th>
+                                    <th class="admin-table-head text-left">账号邮箱</th>
+                                    <th class="admin-table-head text-left">三方登录资料</th>
                                     <th class="admin-table-head text-left">角色</th>
                                     <th class="admin-table-head text-left">状态</th>
                                     <th class="admin-table-head text-left">注册时间</th>
-                                    <th class="admin-table-head text-left" style="width:200px">操作</th>
+                                    <th class="admin-table-head text-left" style="width:150px">操作</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {{ range .users }}
                                 <tr>
-                                    <td class="admin-table-cell">{{ .ID }}</td>
-                                    <td class="admin-table-cell font-medium">{{ .Username }}</td>
-                                    <td class="admin-table-cell">{{ if .Email }}{{ .Email }}{{ else }}-{{ end }}</td>
-                                    <td class="admin-table-cell">
+                                    <td class="admin-table-cell align-top">{{ .ID }}</td>
+                                    <td class="admin-table-cell align-top">
+                                        <div class="font-medium text-gray-900">{{ .DisplayName }}</div>
+                                        <div class="text-xs text-gray-500 mt-1">登录名：{{ .Username }}</div>
+                                    </td>
+                                    <td class="admin-table-cell align-top break-all">{{ if .Email }}{{ .Email }}{{ else }}<span class="text-gray-400">未提供</span>{{ end }}</td>
+                                    <td class="admin-table-cell align-top admin-oauth-cell">
+                                        {{ range .OAuthIdentities }}
+                                        <div class="admin-oauth-identity">
+                                            {{ if .Picture }}
+                                            <img src="{{ .Picture }}" alt="" class="admin-oauth-avatar" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                                            <span class="admin-oauth-avatar admin-oauth-avatar-fallback" style="display:none">{{ .ProviderLabel | printf "%.1s" | upper }}</span>
+                                            {{ else }}
+                                            <span class="admin-oauth-avatar admin-oauth-avatar-fallback">{{ .ProviderLabel | printf "%.1s" | upper }}</span>
+                                            {{ end }}
+                                            <div class="admin-oauth-profile">
+                                                <div class="font-medium text-gray-900">{{ .Name }} <span class="admin-badge">{{ .ProviderLabel }}</span></div>
+                                                <div class="text-xs text-gray-500 break-all">{{ if .Email }}{{ .Email }}{{ else }}邮箱未提供{{ end }}</div>
+                                                {{ if .PreferredUsername }}<div class="text-xs text-gray-400">三方账号：{{ .PreferredUsername }}</div>{{ end }}
+                                            </div>
+                                        </div>
+                                        {{ else }}
+                                        <span class="text-gray-400">未绑定</span>
+                                        {{ end }}
+                                    </td>
+                                    <td class="admin-table-cell align-top">
                                         {{ if eq .Role "admin" }}
                                         <span class="admin-badge admin-badge-danger">管理员</span>
                                         {{ else }}
                                         <span class="admin-badge">普通用户</span>
                                         {{ end }}
                                     </td>
-                                    <td class="admin-table-cell">
+                                    <td class="admin-table-cell align-top">
                                         {{ if eq .Status "blocked" }}
                                         <span class="admin-badge admin-badge-danger">已禁用</span>
                                         {{ else }}
                                         <span class="admin-badge">正常</span>
                                         {{ end }}
                                     </td>
-                                    <td class="admin-table-cell">{{ .CreatedAt.Format "2006-01-02 15:04" }}</td>
+                                    <td class="admin-table-cell align-top whitespace-nowrap">{{ .CreatedAt.Format "2006-01-02 15:04" }}</td>
                                     <td class="admin-table-cell align-top">
-                                        {{ if eq .ID $.currentUserID }}
                                         <div class="space-y-1.5">
-                                            <button type="button" class="admin-btn-secondary admin-btn-sm" onclick="showPwdModal({{ .ID }}, '{{ .Username }}')">重置密码</button>
-                                            <span class="text-xs text-gray-400">当前账号不可执行此操作</span>
-                                        </div>
-                                        {{ else }}
-                                        <div class="space-y-1.5">
+                                            {{ if ne .ID $.currentUserID }}
                                             <form action="/admin/users/{{ .ID }}/role" method="POST">
+                                                <input type="hidden" name="q" value="{{ $.query }}">
+                                                <input type="hidden" name="page" value="{{ $.page }}">
                                                 <input type="hidden" name="role" value="{{ if eq .Role "admin" }}user{{ else }}admin{{ end }}">
                                                 <button type="submit" class="{{ if eq .Role "admin" }}admin-btn-secondary{{ else }}admin-btn-primary{{ end }} admin-btn-sm">
                                                     {{ if eq .Role "admin" }}设为普通用户{{ else }}设为管理员{{ end }}
                                                 </button>
                                             </form>
-
-                                            <button type="button" class="admin-btn-secondary admin-btn-sm" onclick="showPwdModal({{ .ID }}, '{{ .Username }}')">重置密码</button>
-
+                                            {{ end }}
+                                            <button type="button" class="admin-btn-secondary admin-btn-sm" onclick="showPwdModal({{ .ID }}, '{{ .DisplayName }}')">重置密码</button>
+                                            {{ if ne .ID $.currentUserID }}
                                             <form action="/admin/users/{{ .ID }}/status" method="POST">
+                                                <input type="hidden" name="q" value="{{ $.query }}">
+                                                <input type="hidden" name="page" value="{{ $.page }}">
                                                 <input type="hidden" name="status" value="{{ if eq .Status "blocked" }}active{{ else }}blocked{{ end }}">
                                                 <button type="submit" class="{{ if eq .Status "blocked" }}admin-btn-secondary{{ else }}admin-btn-danger{{ end }} admin-btn-sm">
                                                     {{ if eq .Status "blocked" }}解除禁用{{ else }}禁用账号{{ end }}
                                                 </button>
                                             </form>
+                                            {{ else }}
+                                            <span class="text-xs text-gray-400">当前账号不可改角色或状态</span>
+                                            {{ end }}
                                         </div>
-                                        {{ end }}
                                     </td>
                                 </tr>
+                                {{ else }}
+                                <tr><td colspan="8" class="admin-table-cell text-center text-gray-400" style="padding:2.5rem 0">没有找到匹配的会员</td></tr>
                                 {{ end }}
                             </tbody>
                         </table>
                     </div>
+                    {{ template "admin-pagination" . }}
                 </section>
             </main>
         </div>
@@ -93,6 +125,8 @@
             <h3 class="admin-modal-title">重置密码</h3>
             <p class="admin-modal-text">为 <span id="pwdModalName" class="font-semibold text-gray-900"></span> 设置新密码</p>
             <form id="pwdModalForm" method="POST" style="margin-top:1rem">
+                <input type="hidden" name="q" value="{{ .query }}">
+                <input type="hidden" name="page" value="{{ .page }}">
                 <input type="password" name="new_password" class="admin-input" placeholder="输入新密码（至少 6 位）" minlength="6" required>
                 <div class="admin-modal-actions" style="margin-top:1rem">
                     <button type="button" class="admin-btn-secondary" onclick="closePwdModal()">取消</button>
@@ -103,8 +137,8 @@
     </div>
 
     <script>
-    function showPwdModal(userId, username) {
-        document.getElementById('pwdModalName').textContent = username;
+    function showPwdModal(userId, displayName) {
+        document.getElementById('pwdModalName').textContent = displayName;
         document.getElementById('pwdModalForm').action = '/admin/users/' + userId + '/password';
         document.getElementById('pwdModalForm').querySelector('input[name="new_password"]').value = '';
         document.getElementById('pwdModal').style.display = '';

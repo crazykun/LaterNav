@@ -33,6 +33,8 @@ type GitHubResult struct {
 	Subject           string
 	PreferredUsername string
 	DisplayName       string
+	Email             string
+	Picture           string
 }
 
 type GitHubHandler struct {
@@ -53,7 +55,9 @@ func NewGitHubHandler(cfg GitHubConfig) (*GitHubHandler, error) {
 	return &GitHubHandler{config: cfg, client: oidcHTTPClient(), transactions: make(map[string]time.Time)}, nil
 }
 
-func (h *GitHubHandler) secureCookie() bool { return strings.HasPrefix(h.config.RedirectURL, "https://") }
+func (h *GitHubHandler) secureCookie() bool {
+	return strings.HasPrefix(h.config.RedirectURL, "https://")
+}
 
 func (h *GitHubHandler) stateCookieName() string {
 	if h.secureCookie() {
@@ -163,9 +167,11 @@ func (h *GitHubHandler) fetchUser(ctx context.Context, token string) (GitHubResu
 	}
 	defer resp.Body.Close()
 	var profile struct {
-		ID    int64  `json:"id"`
-		Login string `json:"login"`
-		Name  string `json:"name"`
+		ID        int64  `json:"id"`
+		Login     string `json:"login"`
+		Name      string `json:"name"`
+		Email     string `json:"email"`
+		AvatarURL string `json:"avatar_url"`
 	}
 	if resp.StatusCode != http.StatusOK || json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&profile) != nil || profile.ID <= 0 {
 		return out, fmt.Errorf("invalid userinfo response (status %d)", resp.StatusCode)
@@ -173,6 +179,8 @@ func (h *GitHubHandler) fetchUser(ctx context.Context, token string) (GitHubResu
 	out.Subject = strconv.FormatInt(profile.ID, 10)
 	out.PreferredUsername = truncateOIDCString(profile.Login, 255)
 	out.DisplayName = truncateOIDCString(profile.Name, 255)
+	out.Email = truncateOIDCString(profile.Email, 255)
+	out.Picture = truncateOIDCString(profile.AvatarURL, 2048)
 	if out.DisplayName == "" {
 		out.DisplayName = out.PreferredUsername
 	}

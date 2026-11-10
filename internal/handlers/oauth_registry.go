@@ -100,7 +100,7 @@ func (r *OAuthRegistry) Callback(c *gin.Context) {
 		c.String(http.StatusServiceUnavailable, "该登录方式暂不可用")
 		return
 	}
-	var subject, preferred, display string
+	var profile oauthIdentityProfile
 	secure := false
 	switch v := h.(type) {
 	case *OIDCHandler:
@@ -113,7 +113,7 @@ func (r *OAuthRegistry) Callback(c *gin.Context) {
 			c.AbortWithStatus(http.StatusBadRequest)
 			return
 		}
-		subject, preferred, display = result.Subject, result.PreferredUsername, result.DisplayName
+		profile = oauthIdentityProfile{Subject: result.Subject, PreferredUsername: result.PreferredUsername, DisplayName: result.DisplayName, Email: result.Email, Picture: result.Picture}
 		secure = strings.HasPrefix(p.RedirectURL, "https://")
 	case *GitHubHandler:
 		result, err := v.VerifyCallback(c)
@@ -121,10 +121,10 @@ func (r *OAuthRegistry) Callback(c *gin.Context) {
 			c.String(http.StatusBadRequest, "三方登录失败，请重新登录")
 			return
 		}
-		subject, preferred, display = result.Subject, result.PreferredUsername, result.DisplayName
+		profile = oauthIdentityProfile{Subject: result.Subject, PreferredUsername: result.PreferredUsername, DisplayName: result.DisplayName, Email: result.Email, Picture: result.Picture}
 		secure = strings.HasPrefix(p.RedirectURL, "https://")
 	}
-	user, err := databaseOIDCUser(p.IdentityKey, subject, preferred, display)
+	user, err := databaseOIDCUser(p.IdentityKey, profile)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
@@ -148,5 +148,3 @@ func ProviderKeyForIssuer(issuer, clientID string) string {
 	sum := sha256.Sum256([]byte(issuer + "\x00" + clientID))
 	return "oidc_" + base64.RawURLEncoding.EncodeToString(sum[:])
 }
-
-

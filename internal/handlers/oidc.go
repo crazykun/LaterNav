@@ -37,6 +37,8 @@ type OIDCResult struct {
 	Issuer, Subject   string
 	PreferredUsername string
 	DisplayName       string
+	Email             string
+	Picture           string
 	AuthTime          time.Time
 	Reauthenticated   bool
 }
@@ -278,11 +280,13 @@ func (h *OIDCHandler) VerifyCallback(c *gin.Context) (OIDCResult, error) {
 		AuthorizedParty   string `json:"azp"`
 		PreferredUsername string `json:"preferred_username"`
 		DisplayName       string `json:"name"`
+		Email             string `json:"email"`
+		Picture           string `json:"picture"`
 	}
 	if id.Claims(&claims) != nil || (len(id.Audience) > 1 && claims.AuthorizedParty != h.config.ClientID) || (claims.AuthorizedParty != "" && claims.AuthorizedParty != h.config.ClientID) {
 		return out, errors.New("invalid ID token claims")
 	}
-	out = OIDCResult{Issuer: id.Issuer, Subject: id.Subject, PreferredUsername: claims.PreferredUsername, DisplayName: claims.DisplayName}
+	out = OIDCResult{Issuer: id.Issuer, Subject: id.Subject, PreferredUsername: claims.PreferredUsername, DisplayName: claims.DisplayName, Email: claims.Email, Picture: claims.Picture}
 	if claims.AuthTime != nil {
 		out.AuthTime = time.Unix(*claims.AuthTime, 0)
 		if out.AuthTime.After(time.Now().Add(time.Minute)) {
@@ -296,10 +300,27 @@ func (h *OIDCHandler) VerifyCallback(c *gin.Context) (OIDCResult, error) {
 	return out, nil
 }
 
-func databaseOIDCUser(provider, subject, preferredUsername, displayName string) (*models.User, error) {
+type oauthIdentityProfile struct {
+	Subject           string
+	PreferredUsername string
+	DisplayName       string
+	Email             string
+	Picture           string
+}
+
+func databaseOIDCUser(provider string, profile oauthIdentityProfile) (*models.User, error) {
 	db := database.DB
 	if db == nil {
 		return nil, errors.New("database unavailable")
+	}
+	subject := profile.Subject
+	preferredUsername := truncateOIDCString(profile.PreferredUsername, 255)
+	displayName := truncateOIDCString(profile.DisplayName, 255)
+	email := truncateOIDCString(profile.Email, 255)
+	picture := truncateOIDCString(profile.Picture, 2048)
+	refreshProfile := func() error {
+		_, err := db.Exec(`UPDATE oauth_identities SET preferred_username=?, display_name=?, picture=?, email=? WHERE provider=? AND subject=?`, preferredUsername, displayName, picture, email, provider, subject)
+		return err
 	}
 	find := func() (*models.User, error) {
 		var u models.User
@@ -307,6 +328,9 @@ func databaseOIDCUser(provider, subject, preferredUsername, displayName string) 
 		return &u, err
 	}
 	if user, err := find(); err == nil {
+		if err := refreshProfile(); err != nil {
+			return nil, err
+		}
 		return user, nil
 	} else if err != sql.ErrNoRows {
 		return nil, err
@@ -329,9 +353,12 @@ func databaseOIDCUser(provider, subject, preferredUsername, displayName string) 
 	if err != nil {
 		return nil, err
 	}
-	if _, err = tx.Exec(`INSERT INTO oauth_identities (provider, subject, user_id, preferred_username, display_name) VALUES (?, ?, ?, ?, ?)`, provider, subject, id, truncateOIDCString(preferredUsername, 255), truncateOIDCString(displayName, 255)); err != nil {
+	if _, err = tx.Exec(`INSERT INTO oauth_identities (provider, subject, user_id, preferred_username, display_name, picture, email) VALUES (?, ?, ?, ?, ?, ?, ?)`, provider, subject, id, preferredUsername, displayName, picture, email); err != nil {
 		tx.Rollback()
 		if existing, e := find(); e == nil {
+			if refreshErr := refreshProfile(); refreshErr != nil {
+				return nil, refreshErr
+			}
 			return existing, nil
 		}
 		return nil, err
@@ -363,7 +390,7 @@ func (h *OIDCHandler) Callback(c *gin.Context) {
 		return
 	}
 	provider := services.IdentityKey("oidc", result.Issuer, "", h.config.ClientID)
-	user, err := databaseOIDCUser(provider, result.Subject, result.PreferredUsername, result.DisplayName)
+	user, err := databaseOIDCUser(provider, oauthIdentityProfile{Subject: result.Subject, PreferredUsername: result.PreferredUsername, DisplayName: result.DisplayName, Email: result.Email, Picture: result.Picture})
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return

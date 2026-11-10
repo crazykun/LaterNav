@@ -5,6 +5,7 @@ import (
 	"ai-later-nav/internal/models"
 	"database/sql"
 	"fmt"
+	"strings"
 )
 
 type UserRepository struct {
@@ -171,6 +172,87 @@ func (r *UserRepository) GetAllUsers() ([]*models.User, error) {
 		users = append(users, &u)
 	}
 	return users, rows.Err()
+}
+
+// adminUserFilter returns a WHERE clause shared by the page query and its count.
+// EXISTS keeps users with multiple OAuth identities from being counted twice.
+func adminUserFilter(query string) (string, []interface{}) {
+	if query == "" {
+		return "", nil
+	}
+	pattern := "%" + query + "%"
+	return ` WHERE (
+		username LIKE ? OR nickname LIKE ? OR COALESCE(email, '') LIKE ?
+		OR EXISTS (SELECT 1 FROM oauth_identities oi WHERE oi.user_id = users.id AND oi.email LIKE ?)
+	)`, []interface{}{pattern, pattern, pattern, pattern}
+}
+
+func (r *UserRepository) CountUsersMatching(query string) (int64, error) {
+	where, args := adminUserFilter(query)
+	var count int64
+	err := r.db.QueryRow(`SELECT COUNT(*) FROM users`+where, args...).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count filtered users: %w", err)
+	}
+	return count, nil
+}
+
+func (r *UserRepository) ListUsersPage(query string, limit, offset int) ([]*models.AdminUser, error) {
+	where, args := adminUserFilter(query)
+	args = append(args, limit, offset)
+	rows, err := r.db.Query(`
+		SELECT id, username, nickname, COALESCE(email, ''), role, status, created_at, updated_at
+		FROM users`+where+` ORDER BY id DESC LIMIT ? OFFSET ?`, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query users page: %w", err)
+	}
+	defer rows.Close()
+
+	users := make([]*models.AdminUser, 0, limit)
+	for rows.Next() {
+		u := &models.AdminUser{}
+		if err := rows.Scan(&u.ID, &u.Username, &u.Nickname, &u.Email, &u.Role, &u.Status, &u.CreatedAt, &u.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("scan user page: %w", err)
+		}
+		users = append(users, u)
+	}
+	return users, rows.Err()
+}
+
+// ListOAuthIdentitiesByUserIDs loads all profiles for one page in a single query.
+func (r *UserRepository) ListOAuthIdentitiesByUserIDs(userIDs []int64) (map[int64][]models.OAuthIdentity, error) {
+	identities := make(map[int64][]models.OAuthIdentity)
+	if len(userIDs) == 0 {
+		return identities, nil
+	}
+	placeholders := make([]string, len(userIDs))
+	args := make([]interface{}, len(userIDs))
+	for i, id := range userIDs {
+		placeholders[i] = "?"
+		args[i] = id
+	}
+	rows, err := r.db.Query(`
+		SELECT oi.user_id, oi.provider, COALESCE(op.name, ''), COALESCE(op.type, ''),
+			oi.preferred_username, oi.display_name, oi.picture, oi.email
+		FROM oauth_identities oi
+		LEFT JOIN oauth_providers op ON op.identity_key = oi.provider
+		WHERE oi.user_id IN (`+strings.Join(placeholders, ",")+`)
+		ORDER BY oi.user_id, op.sort, oi.provider`, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query user oauth identities: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var userID int64
+		var identity models.OAuthIdentity
+		if err := rows.Scan(&userID, &identity.Provider, &identity.ProviderName, &identity.ProviderType,
+			&identity.PreferredUsername, &identity.DisplayName, &identity.Picture, &identity.Email); err != nil {
+			return nil, fmt.Errorf("scan user oauth identity: %w", err)
+		}
+		identities[userID] = append(identities[userID], identity)
+	}
+	return identities, rows.Err()
 }
 
 func (r *UserRepository) CountTodayUsers() (int64, error) {
