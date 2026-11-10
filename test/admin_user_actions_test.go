@@ -85,10 +85,13 @@ func TestAdminUsersTemplateRendersStatusActionsAndSelfRestrictions(t *testing.T)
 		"当前账号不可改角色或状态",
 		"admin-alert-error",
 		"管理员昵称",
+		"登录名：admin",
+		"邮箱：admin@example.com",
 		"三方管理员",
 		"oauth-admin@example.com",
 		"https://example.com/admin.png",
 		"octoadmin",
+		"三方账号：admin-oauth",
 		"邮箱未提供",
 		"未绑定",
 		`value="管理员"`,
@@ -97,6 +100,15 @@ func TestAdminUsersTemplateRendersStatusActionsAndSelfRestrictions(t *testing.T)
 		if !strings.Contains(html, needle) {
 			t.Fatalf("admin-users.html missing %q in rendered output: %s", needle, html)
 		}
+	}
+
+	// 无三方昵称时名称直接回退到三方账号，不再重复展示一行。
+	if strings.Contains(html, "三方账号：octoadmin") {
+		t.Fatalf("admin-users.html duplicated octoadmin fallback line: %s", html)
+	}
+	// 未设置昵称的会员不重复展示登录名。
+	if strings.Contains(html, "登录名：blocked-user") {
+		t.Fatalf("admin-users.html duplicated login name for nickname-less user: %s", html)
 	}
 
 	for _, forbidden := range []string{

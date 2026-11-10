@@ -29,12 +29,11 @@
                                 <tr>
                                     <th class="admin-table-head text-left">ID</th>
                                     <th class="admin-table-head text-left">会员</th>
-                                    <th class="admin-table-head text-left">账号邮箱</th>
                                     <th class="admin-table-head text-left">三方登录资料</th>
                                     <th class="admin-table-head text-left">角色</th>
                                     <th class="admin-table-head text-left">状态</th>
                                     <th class="admin-table-head text-left">注册时间</th>
-                                    <th class="admin-table-head text-left" style="width:150px">操作</th>
+                                    <th class="admin-table-head text-left">操作</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -43,22 +42,28 @@
                                     <td class="admin-table-cell align-top">{{ .ID }}</td>
                                     <td class="admin-table-cell align-top">
                                         <div class="font-medium text-gray-900">{{ .DisplayName }}</div>
+                                        {{ if .Nickname }}
                                         <div class="text-xs text-gray-500 mt-1">登录名：{{ .Username }}</div>
+                                        {{ end }}
+                                        <div class="text-xs mt-1 {{ if .Email }}text-gray-500{{ else }}text-gray-400{{ end }}">
+                                            邮箱：{{ if .Email }}{{ .Email }}{{ else }}未提供{{ end }}
+                                        </div>
                                     </td>
-                                    <td class="admin-table-cell align-top break-all">{{ if .Email }}{{ .Email }}{{ else }}<span class="text-gray-400">未提供</span>{{ end }}</td>
                                     <td class="admin-table-cell align-top admin-oauth-cell">
                                         {{ range .OAuthIdentities }}
                                         <div class="admin-oauth-identity">
                                             {{ if .Picture }}
-                                            <img src="{{ .Picture }}" alt="" class="admin-oauth-avatar" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                                            <img src="{{ .Picture }}" alt="{{ .Name }}" class="admin-oauth-avatar" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
                                             <span class="admin-oauth-avatar admin-oauth-avatar-fallback" style="display:none">{{ .ProviderLabel | printf "%.1s" | upper }}</span>
                                             {{ else }}
                                             <span class="admin-oauth-avatar admin-oauth-avatar-fallback">{{ .ProviderLabel | printf "%.1s" | upper }}</span>
                                             {{ end }}
                                             <div class="admin-oauth-profile">
                                                 <div class="font-medium text-gray-900">{{ .Name }} <span class="admin-badge">{{ .ProviderLabel }}</span></div>
-                                                <div class="text-xs text-gray-500 break-all">{{ if .Email }}{{ .Email }}{{ else }}邮箱未提供{{ end }}</div>
-                                                {{ if .PreferredUsername }}<div class="text-xs text-gray-400">三方账号：{{ .PreferredUsername }}</div>{{ end }}
+                                                <div class="text-xs text-gray-500 admin-oauth-email" {{ if .Email }}title="{{ .Email }}"{{ end }}>{{ if .Email }}{{ .Email }}{{ else }}邮箱未提供{{ end }}</div>
+                                                {{ if and .DisplayName .PreferredUsername (ne .DisplayName .PreferredUsername) }}
+                                                <div class="text-xs text-gray-400">三方账号：{{ .PreferredUsername }}</div>
+                                                {{ end }}
                                             </div>
                                         </div>
                                         {{ else }}
@@ -81,7 +86,7 @@
                                     </td>
                                     <td class="admin-table-cell align-top whitespace-nowrap">{{ .CreatedAt.Format "2006-01-02 15:04" }}</td>
                                     <td class="admin-table-cell align-top">
-                                        <div class="space-y-1.5">
+                                        <div class="admin-user-actions">
                                             {{ if ne .ID $.currentUserID }}
                                             <form action="/admin/users/{{ .ID }}/role" method="POST">
                                                 <input type="hidden" name="q" value="{{ $.query }}">
@@ -109,7 +114,7 @@
                                     </td>
                                 </tr>
                                 {{ else }}
-                                <tr><td colspan="8" class="admin-table-cell text-center text-gray-400" style="padding:2.5rem 0">没有找到匹配的会员</td></tr>
+                                <tr><td colspan="7" class="admin-table-cell text-center text-gray-400" style="padding:2.5rem 0">没有找到匹配的会员</td></tr>
                                 {{ end }}
                             </tbody>
                         </table>

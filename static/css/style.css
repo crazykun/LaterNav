@@ -444,16 +444,39 @@ html {
     display: flex;
     gap: 0.5rem;
     align-items: center;
-    flex-wrap: wrap;
 }
 
 .admin-user-search .admin-input {
-    width: min(320px, 100%);
+    width: 280px;
     padding: 0.5rem 0.875rem;
+}
+
+.admin-user-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.admin-user-actions form {
+    margin: 0;
+}
+
+/* Action buttons default to full width for stacked menus; the user table lays them out inline. */
+.admin-user-actions .admin-btn-sm {
+    width: auto;
+    white-space: nowrap;
 }
 
 .admin-oauth-cell {
     min-width: 250px;
+}
+
+.admin-oauth-email {
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .admin-oauth-identity {
@@ -647,6 +670,7 @@ html {
     display: flex;
     gap: 0.75rem;
     align-items: center;
+    flex-wrap: wrap;
 }
 
 .admin-chip {
