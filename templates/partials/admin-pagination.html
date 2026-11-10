@@ -1,17 +1,18 @@
 {{ define "admin-pagination" }}
 {{ if gt .totalPages 1 }}
-<nav class="admin-pagination" aria-label="用户列表分页">
+<nav class="admin-pagination" aria-label="列表分页">
+    {{ $basePath := .basePath }}
     {{ if gt .page 1 }}
-    <a class="admin-page-link" href="{{ userPageURL .query (sub .page 1) }}">上一页</a>
+    <a class="admin-page-link" href="{{ adminPageURL $basePath .query (sub .page 1) }}">上一页</a>
     {{ else }}
     <span class="admin-page-link admin-page-disabled">上一页</span>
     {{ end }}
     {{ range $page := pageNumbers .page .totalPages }}
     <a class="admin-page-link {{ if eq $page $.page }}admin-page-current{{ end }}"
-       href="{{ userPageURL $.query $page }}" {{ if eq $page $.page }}aria-current="page"{{ end }}>{{ $page }}</a>
+       href="{{ adminPageURL $basePath $.query $page }}" {{ if eq $page $.page }}aria-current="page"{{ end }}>{{ $page }}</a>
     {{ end }}
     {{ if lt .page .totalPages }}
-    <a class="admin-page-link" href="{{ userPageURL .query (add .page 1) }}">下一页</a>
+    <a class="admin-page-link" href="{{ adminPageURL $basePath .query (add .page 1) }}">下一页</a>
     {{ else }}
     <span class="admin-page-link admin-page-disabled">下一页</span>
     {{ end }}

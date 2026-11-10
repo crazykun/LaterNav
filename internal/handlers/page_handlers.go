@@ -16,6 +16,7 @@ type PageHandler struct {
 	siteService       *services.SiteService
 	navService        *services.NavService
 	submissionService *services.SiteSubmissionService
+	categoryService   *services.CategoryService
 	pageTemplates     map[string]*template.Template
 }
 
@@ -24,6 +25,7 @@ func NewPageHandler(pageTemplates map[string]*template.Template) *PageHandler {
 		siteService:       services.NewSiteService(),
 		navService:        services.NewNavService(),
 		submissionService: services.NewSiteSubmissionService(),
+		categoryService:   services.NewCategoryService(),
 		pageTemplates:     pageTemplates,
 	}
 }
@@ -95,7 +97,7 @@ func (h *PageHandler) HomePage(c *gin.Context) {
 		}
 	}
 
-	categories, _ := h.siteService.GetCategories()
+	categories, _ := h.categoryService.ListAll()
 	copyright, _ := c.Get("Copyright")
 
 	if err := h.renderPage(c, "index.html", gin.H{
@@ -138,7 +140,7 @@ func (h *PageHandler) SearchPage(c *gin.Context) {
 		}
 	}
 
-	categories, _ := h.siteService.GetCategories()
+	categories, _ := h.categoryService.ListAll()
 	copyright, _ := c.Get("Copyright")
 
 	if err := h.renderPage(c, "index.html", gin.H{

@@ -15,31 +15,12 @@
                     </svg>
                     全部
                 </a>
-                <a href="/search?category=AI对话" class="px-3 py-2.5 text-sm rounded-xl font-medium transition-all duration-200 text-center flex items-center justify-center gap-2 {{ if eq .selectedCategory "AI对话" }}bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400{{ else }}text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700{{ end }}">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                    </svg>
-                    对话
+                {{ range .categories }}
+                <a href="{{ categoryURL .Name }}" class="px-3 py-2.5 text-sm rounded-xl font-medium transition-all duration-200 text-center flex items-center justify-center gap-2 {{ if eq $.selectedCategory .Name }}bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400{{ else }}text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700{{ end }}">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h10v10H7z"></path></svg>
+                    {{ .Name }}
                 </a>
-                <a href="/search?category=AI创作" class="px-3 py-2.5 text-sm rounded-xl font-medium transition-all duration-200 text-center flex items-center justify-center gap-2 {{ if eq .selectedCategory "AI创作" }}bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400{{ else }}text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700{{ end }}">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                    </svg>
-                    创作
-                </a>
-                <a href="/search?category=AI编程" class="px-3 py-2.5 text-sm rounded-xl font-medium transition-all duration-200 text-center flex items-center justify-center gap-2 {{ if eq .selectedCategory "AI编程" }}bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400{{ else }}text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700{{ end }}">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
-                    </svg>
-                    编程
-                </a>
-                <a href="/search?category=AI工具" class="px-3 py-2.5 text-sm rounded-xl font-medium transition-all duration-200 text-center flex items-center justify-center gap-2 {{ if eq .selectedCategory "AI工具" }}bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400{{ else }}text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700{{ end }}">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    </svg>
-                    工具
-                </a>
+                {{ end }}
             </nav>
         </div>
     </aside>
@@ -62,18 +43,11 @@
                     <a href="/" class="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-colors {{ if not .selectedCategory }}bg-blue-500 text-white border-blue-500{{ else }}bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700{{ end }}">
                         全部
                     </a>
-                    <a href="/search?category=AI对话" class="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-colors {{ if eq .selectedCategory "AI对话" }}bg-blue-500 text-white border-blue-500{{ else }}bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700{{ end }}">
-                        对话
+                    {{ range .categories }}
+                    <a href="{{ categoryURL .Name }}" class="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-colors {{ if eq $.selectedCategory .Name }}bg-blue-500 text-white border-blue-500{{ else }}bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700{{ end }}">
+                        {{ .Name }}
                     </a>
-                    <a href="/search?category=AI创作" class="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-colors {{ if eq .selectedCategory "AI创作" }}bg-blue-500 text-white border-blue-500{{ else }}bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700{{ end }}">
-                        创作
-                    </a>
-                    <a href="/search?category=AI编程" class="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-colors {{ if eq .selectedCategory "AI编程" }}bg-blue-500 text-white border-blue-500{{ else }}bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700{{ end }}">
-                        编程
-                    </a>
-                    <a href="/search?category=AI工具" class="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-colors {{ if eq .selectedCategory "AI工具" }}bg-blue-500 text-white border-blue-500{{ else }}bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700{{ end }}">
-                        工具
-                    </a>
+                    {{ end }}
                 </nav>
             </div>
             

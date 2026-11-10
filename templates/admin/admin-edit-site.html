@@ -28,7 +28,10 @@
                         {{ template "admin-logo-field" . }}
                         <div>
                             <label for="category" class="admin-label">主分类</label>
-                            <input type="text" id="category" name="Category" value="{{ .site.Category }}" class="admin-input" placeholder="如：AI对话">
+                            <select id="category" name="Category" class="admin-input">
+                                <option value="">未分类</option>
+                                {{ range .categories }}<option value="{{ .Name }}" {{ if eq $.site.Category .Name }}selected{{ end }}>{{ .Name }}</option>{{ end }}
+                            </select>
                         </div>
                         <div>
                             <label for="tags" class="admin-label">标签（用逗号分隔）</label>

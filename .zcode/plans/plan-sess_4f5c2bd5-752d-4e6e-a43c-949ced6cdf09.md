@@ -1,69 +1,104 @@
-# 后台布局与会员管理增强计划
+# 后台分类管理与标签管理规划
 
 ## Context
 
-后台左侧导航目前跟随长页面滚出视口；会员列表一次性加载全部用户，只显示登录名，且没有搜索、分页和三方身份资料。此次调整让后台导航在长页面保持可见，并把会员列表升级为可搜索分页的资料管理视图，展示昵称及每个三方登录平台的头像、邮箱、昵称。
+当前分类只是 `sites.category` 字符串，首页桌面侧栏和移动胶囊还分别硬编码分类；标签已有 `tags + site_tags` 表，但没有管理入口，历史编辑还会遗留孤儿标签。本次补齐两个后台模块，并让分类真正成为可维护的主数据。
 
-数据库已有 `oauth_identities.picture/email/display_name/preferred_username`，无需新增表；但现有登录流程未采集头像和邮箱，需要同步补齐，否则新增列会持续为空。
+已确认规则：
+- **分类受控选择**：后台添加/编辑站点、会员投稿只能选择已有分类，不能任意创建；仍允许“未分类”。
+- **使用中分类禁止删除**：先把站点迁到其他分类再删除，避免误清空。
+- **标签可删除、可合并**：删除即解除关联；合并后关联去重，源标签删除。
 
-## 一、固定后台左侧导航
+## 一、数据库与数据模型
 
-修改 `static/css/style.css`，保留现有 `admin-shell` DOM：
-- 桌面端给 `.admin-sidebar` 使用 `position: sticky; top: 0; align-self: start`，高度为 `100vh/100dvh`，内部 `overflow-y: auto`，正文继续正常滚动。
-- 使用 `border-box` 避免 padding 超出视口；低高度窗口只滚动侧栏内部。
-- 窄屏改为单列、侧栏静态排列，避免当前固定 280px 侧栏挤压内容；不额外引入抽屉或 JS。
-- 保持 `admin-main`、topbar 的现有行为，不把整个后台改成双滚动容器。
+新增 `internal/database/migrations/011_categories.sql`：
+- 建 `categories(id, name UNIQUE, sort_order, created_at, updated_at)`，分类名最长 100 字符。
+- 从现有全部 `sites.category` 去重回填（包含软删除站点，避免恢复后产生未管理分类）。
+- 迁移 SQL 采用可重复执行的 `INSERT ... SELECT ... WHERE NOT EXISTS`，适配现有非事务 migration runner。
+- 保留 `sites.category` 字符串作为现有查询/展示路径，**本次不迁移为 `category_id`**，避免双写、外键迁移和回滚复杂性；由 service 保证分类主数据与站点名称一致。
 
-## 二、会员搜索与数据库分页
+新增模型：
+- `internal/models/category.go`：`Category`、`CategoryUsage{Category, SiteCount}`。
+- `internal/models/tag.go`：`Tag`、`TagUsage{Tag, SiteCount}`。
+- 使用数只统计 `deleted=0` 的正式站点，界面明确“使用数不含已删除站点和投稿快照”。
 
-在 `internal/models/user.go` 增加管理端展示模型：
-- `AdminUser` 嵌入 `User`，带 `OAuthIdentities []OAuthIdentity`。
-- `OAuthIdentity` 包含 provider 展示名/类型/标识，以及 `PreferredUsername`、`DisplayName`、`Picture`、`Email`；提供昵称/头像展示回退方法，模板不重复业务判断。
-- 提供 `DisplayName()`（用户昵称优先，空则登录名）与 `UserPage`（用户、总数、页码、每页条数、总页数）模型。
+## 二、分类管理
 
-在 `internal/database/repository/user_repo.go` 新增专用查询，保留现有 `GetAllUsers` 避免影响其他调用：
-- `ListUsersPage(query string, limit, offset int)`：`COUNT(*) + LIMIT/OFFSET`，固定 `id DESC` 排序。
-- 搜索使用参数绑定，覆盖 `users.username/nickname/email`，并用 `EXISTS` 覆盖 `oauth_identities.email`，避免 JOIN 导致用户与 COUNT 重复。
-- `ListOAuthIdentitiesByUserIDs(userIDs)`：当前页用户 ID 一次批量查询，`LEFT JOIN oauth_providers ON identity_key = provider`，按用户分组，避免 N+1；provider 配置缺失时回退显示原始标识。
+新增 `category_repo.go` / `category_service.go`：
+- 列表：支持名称搜索、数据库分页、按 `sort_order + id` 排序，LEFT JOIN/子查询统计站点数。
+- 新增：Trim、非空、长度校验、重名返回业务错误；允许零站点分类。
+- 排序：列表提供上移/下移，事务内交换相邻两条 `sort_order`；初始化使用稳定递增排序值。
+- 重命名：事务内更新 `categories`、全部 `sites.category`、待审核 `site_submissions.category`；已通过/已驳回投稿保留历史快照。
+- 删除：使用数大于 0 返回“请先迁移此分类下的站点”，仅允许删除未使用分类；空分类可直接删除。
+- 提供 `ListEnabled`/`ExistsByName` 给前台和表单复用；分类名称仍是现有搜索 URL 的参数，不引入 slug 破坏现有链接。
 
-在 `internal/services/user_service.go` 增加 `GetAdminUsers(query, page, pageSize)`：
-- 默认/修正页码为 1，每页固定 20 条，限制异常页大小。
-- 总页数计算后将过大页码收敛到最后一页，再查询当前页及三方身份。
+## 三、标签管理
 
-## 三、会员列表与操作回跳
+新增 `tag_repo.go` / `tag_service.go`：
+- 列表：名称搜索、分页、正式站点使用数，按名称/使用数排序。
+- 新增与重命名：复用统一标签规范化规则，处理空名、超长、重名。
+- 删除：事务中删除 `site_tags` 关联与标签，后台显示影响站点数并要求确认。
+- 合并：源标签 → 目标标签，事务内执行：
+  1. 校验两个标签存在且不是同一个；
+  2. `INSERT IGNORE INTO site_tags ... SELECT ...` 合并关联；
+  3. 删除源关联和源标签；
+  4. 对待审核投稿的标签字符串按完整项替换、去重后重写，不能 SQL 子串替换。
+- 已通过/已驳回投稿保留历史标签快照。
+- 顺带修复现有编辑站点“清空标签后保存不会解除旧关联”的问题：空输入传递空切片而不是 `nil`；新增/编辑统一支持中英文逗号、去空去重。
 
-修改 `internal/handlers/admin_handlers.go`：
-- `AdminUsers` / `renderAdminUsers` 读取 `q`、`page`，调用新的分页服务；错误重绘也保留搜索和页码。
-- 向模板传 `total/page/pageSize/totalPages/query/listQuery` 等分页数据。
-- 改角色、重置密码、改状态成功后，使用白名单重新构造 `q/page` 查询串并回跳原列表；失败重绘保留同样条件。
+## 四、后台路由、页面与交互
 
-重做 `templates/admin/admin-users.html` 的列表区域，沿用 `admin-toolbar-row/admin-table/admin-btn-*`：
-- 顶部显示筛选后的用户总数，GET 搜索框（登录名/昵称/邮箱），搜索自动回到第 1 页，可清空。
-- 主资料列显示用户昵称（空则登录名）及次级登录名；账号邮箱单独展示。
-- 三方登录列按身份逐条显示：平台名、头像（无头像用昵称首字/平台占位）、三方昵称、三方邮箱、三方登录名；无身份显示“未绑定”，未返回的邮箱/昵称显示“未提供”。头像使用普通远程 URL + `loading=lazy` 和加载失败回退，不代理或上传第三方内容。
-- 角色、状态、注册时间和原有账号操作保留，自己账号的限制不变。
-- 底部提供总数、当前页/总页数、上一页/下一页及页码链接；所有链接保留搜索关键词。
-- 三个操作表单及密码弹窗统一携带白名单回跳参数，避免操作后丢失筛选页码。
+新增 `internal/handlers/admin_taxonomy_handlers.go`，在 `main.go` 的管理员组注册：
+```text
+GET  /admin/categories
+POST /admin/categories/add
+POST /admin/categories/:id/rename
+POST /admin/categories/:id/move
+POST /admin/categories/:id/delete
 
-## 四、补齐三方资料采集与更新
+GET  /admin/tags
+POST /admin/tags/add
+POST /admin/tags/:id/rename
+POST /admin/tags/:id/merge
+POST /admin/tags/:id/delete
+```
 
-不新增数据库迁移，使用已有字段：
-- `internal/handlers/oidc.go`：OIDC claims 增加 `email`、`picture`，解析后随身份返回；不做“邮箱已验证”的错误声明。
-- `internal/handlers/github_oauth.go`：GitHub userinfo 解码 `email`、`avatar_url`；保持现有 `read:user` scope，私有邮箱无法取得时显示未提供，不额外扩大权限。
-- `internal/handlers/oauth_registry.go`：将 OIDC/GitHub 结果统一为身份资料参数传给用户解析逻辑。
-- `databaseOIDCUser` 新用户 INSERT 写入 `picture/email`；已绑定用户登录时更新对应身份的 `preferred_username/display_name/picture/email`，让旧账号在下次三方登录后补齐资料。并发冲突回退路径也同步刷新。
-- 不自动覆盖用户主动编辑的 `users.nickname`；三方昵称只写入身份表。
+页面：
+- 新增 `templates/admin/admin-categories.html`：搜索、使用数、排序、添加、重命名、删除；使用中分类的删除按钮禁用并说明原因。
+- 新增 `templates/admin/admin-tags.html`：搜索、使用数、添加、重命名、合并目标选择、删除确认。
+- 两页复用后台 shell、表格、flash、分页；操作后保留 `q/page`。
+- 泛化当前用户专用分页 URL helper/分页 partial，支持传入基础路径，不复制三套分页逻辑。
+- 新增加改名、删除、合并、排序 POST 的后台 CSRF 校验，不继续沿用旧导航的 GET 删除模式。
+- `admin-shell.html` 在“站点管理”附近新增“分类管理”“标签管理”入口。
+- `internal/web/templates.go` 注册新模板，避免运行时模板缺失。
 
-## 五、测试与验证
+## 五、打通分类与现有业务
 
-更新/新增：
-- `test/admin_user_actions_test.go`：昵称优先、多个三方身份的头像/邮箱/昵称、空资料回退、搜索表单、分页链接、操作后保留 q/page；同步手写 SQL stub 的分页 COUNT、LIMIT/OFFSET 和身份批量查询。
-- `test/templ_test.go`：兼容新列表模型和分页字段。
-- 身份资料解析/保存测试：OIDC claims 映射、GitHub `avatar_url/email` 映射、已绑定用户刷新资料，继续复用现有测试风格，不引入新依赖。
-- CSS 保留现有 class，避免破坏共享 shell 测试。
+- **首页 `templates/index.html`**：桌面侧栏和移动胶囊共用同一份分类列表，移除硬编码的“AI对话/AI创作/AI编程/AI工具”；分类项统一 `/search?category=<名称>`，保留“全部”、当前分类高亮及现有悬浮/移动布局。分类图标用通用图标，不再错误绑定分类名。
+- **后台站点新增/编辑**：分类文本框改为 `select`，选项来自分类 service，提供“未分类”；旧站点若存在未管理分类，迁移后应有对应选项。
+- **会员投稿**：分类改为已有分类下拉选择，允许不选；`SiteSubmissionService.Submit` 服务端校验分类存在，不能只做前端限制。
+- **审核通过**：再次校验投稿分类仍有效；若分类已被删除，提示管理员先处理投稿，而不是重新产生旧分类。
+- **导航管理 `nav_items`**：顶部自由链接与分类继续独立；分类改名只同步明确匹配 `/search?category=<旧名>` 的导航 URL，避免影响其他自定义链接。
+- **仪表盘统计**：分类数量改读主数据表；分类统计保留“正式站点使用数”口径。标签总数继续读取 `tags`。
+- `GetCategories()` 保留兼容包装，逐步委托分类模块，避免一次性改坏现有 handler 和 SQL stub。
+
+## 六、测试与验证
+
+新增/更新测试：
+- 分类新增、重名、重命名级联、使用中删除保护、排序事务、搜索分页。
+- 标签重命名、删除关联、合并时同站重复关联去重、源标签删除、事务回滚。
+- 待审核投稿同步与历史投稿快照不变。
+- 站点编辑空标签可清空，标签规范化一致。
+- 首页桌面/移动动态分类、URL 转义、选中态、空分类不报错。
+- 后台模板、CSRF、操作后 `q/page` 回跳；更新 `test/nav_test.go` 的硬编码分类断言。
 
 验证：
 1. `go build -v ./... && go vet ./... && go test -v ./...`，改动文件 `gofmt`。
-2. 本机无 MySQL server，不能声称已完成真实端到端；部署机 `./scripts/restart.sh` 后验证：长后台页面滚动时侧栏固定、低高度/窄屏布局。
-3. 用超过 20 个用户验证翻页和边界页；按登录名/昵称/账号邮箱/三方邮箱搜索；操作后仍停留原筛选页。
-4. 分别通过 OIDC 和 GitHub 重新登录一次，确认头像、邮箱、昵称保存并展示；已有用户需重新三方登录才会补齐此前未采集的头像和邮箱。
+2. 本机无 MySQL，真实迁移和端到端在部署机执行 `./scripts/restart.sh` 后验证。
+3. 核对迁移回填分类数与 `SELECT DISTINCT category FROM sites` 一致。
+4. 实测：新增空分类 → 首页/站点/投稿同步出现 → 新建分类站点 → 重命名后前台链接和站点仍正常 → 使用中分类禁止删除 → 清空分类后删除。
+5. 实测标签删除、两个标签合并、同一站点关联不重复，以及投稿审核不会产生已合并旧标签。
+
+## 范围控制
+
+本次不引入 `sites.category_id` 大迁移、不做标签前台筛选页、不重做审核原子性。分类管理先以“主数据表 + 受控写入 + 名称同步”落地，避免把两个后台管理功能扩大成数据模型重构。

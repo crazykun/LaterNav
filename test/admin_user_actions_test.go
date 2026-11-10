@@ -62,6 +62,7 @@ func TestAdminUsersTemplateRendersStatusActionsAndSelfRestrictions(t *testing.T)
 		"error":           "操作失败",
 		"users":           users,
 		"total":           int64(2),
+		"basePath":        "/admin/users",
 		"page":            1,
 		"pageSize":        20,
 		"totalPages":      1,
@@ -125,7 +126,7 @@ func TestAdminUsersTemplateRendersPagination(t *testing.T) {
 	tmpl := web.BuildSharedTemplates(os.DirFS("../templates"))
 	var out strings.Builder
 	err := tmpl.ExecuteTemplate(&out, "admin-users.html", map[string]any{
-		"users": []any{}, "total": int64(65), "page": 3, "pageSize": 20, "totalPages": 4, "query": "AI 工具",
+		"users": []any{}, "total": int64(65), "page": 3, "pageSize": 20, "totalPages": 4, "query": "AI 工具", "basePath": "/admin/users",
 	})
 	if err != nil {
 		t.Fatalf("ExecuteTemplate failed: %v", err)

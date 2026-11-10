@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><title>分类管理 - {{ .SiteName }}</title>{{ template "admin-head" . }}</head>
+<body class="admin-body">
+<div class="admin-shell">
+    {{ template "admin-sidebar" . }}
+    <div class="admin-main">
+        {{ template "admin-topbar" . }}
+        <main class="admin-content">
+            <section class="admin-toolbar-row">
+                <div class="admin-toolbar-meta">
+                    <span class="admin-chip">共 {{ .total }} 个分类</span>
+                    <form action="/admin/categories" method="GET" class="admin-user-search admin-taxonomy-actions">
+                        <input type="search" name="q" value="{{ .query }}" placeholder="搜索分类名称" class="admin-input">
+                        <button type="submit" class="admin-btn-primary">搜索</button>
+                        {{ if .query }}<a href="/admin/categories" class="admin-btn-secondary">清空</a>{{ end }}
+                    </form>
+                </div>
+                <form action="/admin/categories/add" method="POST" class="admin-user-search admin-taxonomy-actions">
+                    <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
+                    <input type="text" name="name" maxlength="100" required class="admin-input" placeholder="新分类名称">
+                    <button type="submit" class="admin-btn-primary">添加分类</button>
+                </form>
+            </section>
+            <section class="admin-surface overflow-hidden">
+                {{ template "admin-flash" . }}
+                <p class="text-sm text-gray-500 mb-4">使用数统计全部分类下的站点（含已删除站点），避免恢复站点后产生游离分类。使用中的分类不能删除，请先迁移站点。</p>
+                <div class="overflow-x-auto">
+                    <table class="admin-table min-w-full">
+                        <thead><tr><th class="admin-table-head text-left">分类</th><th class="admin-table-head text-left">使用数</th><th class="admin-table-head text-left">排序</th><th class="admin-table-head text-left">操作</th></tr></thead>
+                        <tbody>
+                        {{ range .categories }}
+                        <tr>
+                            <td class="admin-table-cell">
+                                <form action="/admin/categories/{{ .ID }}/rename" method="POST" class="admin-user-search admin-taxonomy-actions">
+                                    <input type="hidden" name="csrf_token" value="{{ $.csrfToken }}">
+                                    <input type="hidden" name="q" value="{{ $.query }}"><input type="hidden" name="page" value="{{ $.page }}">
+                                    <input type="text" name="name" value="{{ .Name }}" maxlength="100" required class="admin-input" aria-label="分类名称">
+                                    <button type="submit" class="admin-btn-secondary admin-btn-sm">重命名</button>
+                                </form>
+                            </td>
+                            <td class="admin-table-cell"><span class="admin-badge">{{ .SiteCount }} 个站点</span></td>
+                            <td class="admin-table-cell">
+                                <div class="admin-user-actions">
+                                    <form action="/admin/categories/{{ .ID }}/move" method="POST">
+                                        <input type="hidden" name="csrf_token" value="{{ $.csrfToken }}"><input type="hidden" name="q" value="{{ $.query }}"><input type="hidden" name="page" value="{{ $.page }}"><input type="hidden" name="direction" value="up">
+                                        <button type="submit" class="admin-btn-secondary admin-btn-sm" title="上移">↑ 上移</button>
+                                    </form>
+                                    <form action="/admin/categories/{{ .ID }}/move" method="POST">
+                                        <input type="hidden" name="csrf_token" value="{{ $.csrfToken }}"><input type="hidden" name="q" value="{{ $.query }}"><input type="hidden" name="page" value="{{ $.page }}"><input type="hidden" name="direction" value="down">
+                                        <button type="submit" class="admin-btn-secondary admin-btn-sm" title="下移">↓ 下移</button>
+                                    </form>
+                                </div>
+                            </td>
+                            <td class="admin-table-cell">
+                                {{ if eq .SiteCount 0 }}
+                                <form action="/admin/categories/{{ .ID }}/delete" method="POST" onsubmit="return confirm('确定删除分类「{{ .Name }}」吗？');">
+                                    <input type="hidden" name="csrf_token" value="{{ $.csrfToken }}"><input type="hidden" name="q" value="{{ $.query }}"><input type="hidden" name="page" value="{{ $.page }}">
+                                    <button type="submit" class="admin-btn-danger admin-btn-sm">删除</button>
+                                </form>
+                                {{ else }}<span class="text-xs text-gray-400">使用中，先迁移站点</span>{{ end }}
+                            </td>
+                        </tr>
+                        {{ else }}<tr><td colspan="4" class="admin-table-cell text-center text-gray-400">暂无分类</td></tr>{{ end }}
+                        </tbody>
+                    </table>
+                </div>
+                {{ template "admin-pagination" . }}
+            </section>
+        </main>
+    </div>
+</div>
+</body>
+</html>

@@ -473,6 +473,17 @@ html {
     white-space: nowrap;
 }
 
+.admin-taxonomy-actions .admin-btn-sm {
+    width: auto;
+    white-space: nowrap;
+}
+
+.admin-taxonomy-actions .admin-input {
+    width: 180px;
+    max-width: 100%;
+    padding: 0.5rem 0.75rem;
+}
+
 .admin-oauth-cell {
     min-width: 250px;
 }

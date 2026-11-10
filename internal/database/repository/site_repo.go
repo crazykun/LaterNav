@@ -673,8 +673,8 @@ func (r *SiteRepository) GetDashboardStats() (*models.DashboardStats, error) {
 		return nil, fmt.Errorf("query featured count: %w", err)
 	}
 
-	// 分类数量
-	err = r.db.QueryRow("SELECT COUNT(DISTINCT category) FROM sites WHERE deleted = 0 AND category != ''").Scan(&stats.CategoryCount)
+	// 分类数量包含尚未关联站点的受控分类。
+	err = r.db.QueryRow("SELECT COUNT(*) FROM categories").Scan(&stats.CategoryCount)
 	if err != nil {
 		return nil, fmt.Errorf("query category count: %w", err)
 	}

@@ -8,7 +8,8 @@ import (
 )
 
 type SiteService struct {
-	siteRepo *repository.SiteRepository
+	siteRepo        *repository.SiteRepository
+	categoryService *CategoryService
 }
 
 func buildDisplayTags(tags []string) []models.DisplayTag {
@@ -39,7 +40,8 @@ func buildSiteDisplay(site models.SiteWithTags, todayUV int64) models.SiteDispla
 
 func NewSiteService() *SiteService {
 	return &SiteService{
-		siteRepo: repository.NewSiteRepository(),
+		siteRepo:        repository.NewSiteRepository(),
+		categoryService: NewCategoryService(),
 	}
 }
 
@@ -131,7 +133,24 @@ func (s *SiteService) GetByIDs(ids []int64) ([]models.SiteDisplay, error) {
 	return result, nil
 }
 
+func (s *SiteService) validateCategory(category string) error {
+	if category == "" {
+		return nil
+	}
+	exists, err := s.categoryService.Exists(category)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return ErrCategoryNotFound
+	}
+	return nil
+}
+
 func (s *SiteService) Create(site *models.Site, tags []string) (int64, error) {
+	if err := s.validateCategory(site.Category); err != nil {
+		return 0, err
+	}
 	id, err := s.siteRepo.Create(site)
 	if err != nil {
 		return 0, err
@@ -147,6 +166,9 @@ func (s *SiteService) Create(site *models.Site, tags []string) (int64, error) {
 }
 
 func (s *SiteService) Update(site *models.Site, tags []string) error {
+	if err := s.validateCategory(site.Category); err != nil {
+		return err
+	}
 	if err := s.siteRepo.Update(site); err != nil {
 		return err
 	}
@@ -162,7 +184,7 @@ func (s *SiteService) Delete(id int64) error {
 }
 
 func (s *SiteService) GetCategories() ([]string, error) {
-	return s.siteRepo.GetCategories()
+	return s.categoryService.Names()
 }
 
 func (s *SiteService) IncrementVisits(siteID int64, ip string, userID *int64) error {

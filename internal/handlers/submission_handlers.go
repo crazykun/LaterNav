@@ -25,7 +25,7 @@ func submissionCSRF(c *gin.Context) string {
 
 // SubmitPage 投稿页，仅登录会员可见（挂在 AuthMiddleware 之后）。
 func (h *PageHandler) SubmitPage(c *gin.Context) {
-	categories, _ := h.siteService.GetCategories()
+	categories, _ := h.categoryService.ListAll()
 	if err := h.renderPage(c, "submit.html", gin.H{
 		"csrfToken":  submissionCSRF(c),
 		"categories": categories,
@@ -58,7 +58,7 @@ func CreateSubmission(c *gin.Context) {
 		"Category":    c.PostForm("category"),
 		"Tags":        c.PostForm("tags"),
 	}
-	categories, _ := services.NewSiteService().GetCategories()
+	categories, _ := services.NewCategoryService().ListAll()
 
 	_, err := services.NewSiteSubmissionService().Submit(userID,
 		form["Name"].(string), form["URL"].(string), form["Description"].(string),
@@ -90,7 +90,8 @@ func submissionErrorMessage(err error) string {
 		errors.Is(err, services.ErrInvalidTags),
 		errors.Is(err, services.ErrSubmissionExists),
 		errors.Is(err, services.ErrAlreadySubmitted),
-		errors.Is(err, services.ErrTooManyPending):
+		errors.Is(err, services.ErrTooManyPending),
+		errors.Is(err, services.ErrCategoryNotFound):
 		return err.Error()
 	default:
 		return "提交失败，请稍后重试"

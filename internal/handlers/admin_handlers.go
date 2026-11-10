@@ -61,6 +61,8 @@ type AdminHandler struct {
 	userService       *services.UserService
 	navService        *services.NavService
 	submissionService *services.SiteSubmissionService
+	categoryService   *services.CategoryService
+	tagService        *services.TagService
 }
 
 func NewAdminHandler() *AdminHandler {
@@ -69,6 +71,8 @@ func NewAdminHandler() *AdminHandler {
 		userService:       services.NewUserService(),
 		navService:        services.NewNavService(),
 		submissionService: services.NewSiteSubmissionService(),
+		categoryService:   services.NewCategoryService(),
+		tagService:        services.NewTagService(),
 	}
 }
 
@@ -191,7 +195,7 @@ func (h *AdminHandler) AdminToggleSiteFeatured(c *gin.Context) {
 }
 
 func (h *AdminHandler) AdminAddSiteForm(c *gin.Context) {
-	categories, _ := h.siteService.GetCategories()
+	categories, _ := h.categoryService.ListAll()
 	common := getCommonAdminData(c, "sites", "添加站点", "创建新的站点条目并设置分类、标签和推荐状态。")
 	common["categories"] = categories
 	c.HTML(http.StatusOK, "admin-add-site.html", common)
@@ -215,18 +219,13 @@ func (h *AdminHandler) AdminAddSite(c *gin.Context) {
 	site.Featured = c.PostForm("Featured") == "on"
 
 	tagsStr := c.PostForm("Tags")
-	var tags []string
-	if tagsStr != "" {
-		for _, t := range strings.Split(tagsStr, ",") {
-			t = strings.TrimSpace(t)
-			if t != "" {
-				tags = append(tags, t)
-			}
-		}
-	}
+	tags, tagsErr := services.NormalizeTagNames(tagsStr)
 
-	if _, err := h.siteService.Create(site, tags); err != nil {
-		categories, _ := h.siteService.GetCategories()
+	if _, err := h.siteService.Create(site, tags); err != nil || tagsErr != nil {
+		if tagsErr != nil {
+			err = tagsErr
+		}
+		categories, _ := h.categoryService.ListAll()
 		common := getCommonAdminData(c, "sites", "添加站点", "创建新的站点条目并设置分类、标签和推荐状态。")
 		common["error"] = "创建失败: " + err.Error()
 		common["site"] = site
@@ -256,7 +255,7 @@ func (h *AdminHandler) AdminEditSiteForm(c *gin.Context) {
 		return
 	}
 
-	categories, _ := h.siteService.GetCategories()
+	categories, _ := h.categoryService.ListAll()
 	common := getCommonAdminData(c, "sites", "编辑站点", "调整站点信息并维护推荐状态。")
 	common["site"] = site
 	common["tagsString"] = strings.Join(site.Tags, ", ")
@@ -291,18 +290,13 @@ func (h *AdminHandler) AdminEditSite(c *gin.Context) {
 	site.Featured = c.PostForm("Featured") == "on"
 
 	tagsStr := c.PostForm("Tags")
-	var tags []string
-	if tagsStr != "" {
-		for _, t := range strings.Split(tagsStr, ",") {
-			t = strings.TrimSpace(t)
-			if t != "" {
-				tags = append(tags, t)
-			}
-		}
-	}
+	tags, tagsErr := services.NormalizeTagNames(tagsStr)
 
-	if err := h.siteService.Update(site, tags); err != nil {
-		categories, _ := h.siteService.GetCategories()
+	if err := h.siteService.Update(site, tags); err != nil || tagsErr != nil {
+		if tagsErr != nil {
+			err = tagsErr
+		}
+		categories, _ := h.categoryService.ListAll()
 		common := getCommonAdminData(c, "sites", "编辑站点", "调整站点信息并维护推荐状态。")
 		common["error"] = "更新失败: " + err.Error()
 		common["site"] = site
@@ -570,6 +564,7 @@ func (h *AdminHandler) renderAdminUsers(c *gin.Context, statusCode int, errorMsg
 	common["pageSize"] = userPage.PageSize
 	common["totalPages"] = userPage.TotalPages
 	common["query"] = query
+	common["basePath"] = "/admin/users"
 	common["currentUserID"] = c.GetInt64("user_id")
 	if errorMsg != "" {
 		common["error"] = errorMsg

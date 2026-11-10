@@ -125,6 +125,7 @@ func TestAdminUsersTemplateUsesSharedShell(t *testing.T) {
 		"pageDescription": "查看用户账号信息。",
 		"users":           []any{},
 		"total":           int64(0),
+		"basePath":        "/admin/users",
 		"page":            1,
 		"pageSize":        20,
 		"totalPages":      1,

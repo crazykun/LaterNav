@@ -9,10 +9,24 @@ import (
 )
 
 var funcMap = template.FuncMap{
-	"upper": strings.ToUpper,
-	"lower": strings.ToLower,
-	"add":   func(a, b int) int { return a + b },
-	"sub":   func(a, b int) int { return a - b },
+	"upper":       strings.ToUpper,
+	"lower":       strings.ToLower,
+	"add":         func(a, b int) int { return a + b },
+	"sub":         func(a, b int) int { return a - b },
+	"categoryURL": func(name string) string { return "/search?category=" + url.QueryEscape(name) },
+	"adminPageURL": func(basePath, query string, page int) string {
+		params := url.Values{}
+		if query != "" {
+			params.Set("q", query)
+		}
+		if page > 1 {
+			params.Set("page", strconv.Itoa(page))
+		}
+		if encoded := params.Encode(); encoded != "" {
+			return basePath + "?" + encoded
+		}
+		return basePath
+	},
 	"userPageURL": func(query string, page int) string {
 		params := url.Values{}
 		if query != "" {
@@ -77,5 +91,5 @@ func BuildPageTemplates(root fs.FS) map[string]*template.Template {
 }
 
 func BuildSharedTemplates(root fs.FS) *template.Template {
-	return template.Must(template.New("shared.html").Funcs(funcMap).ParseFS(root, "error.html", "admin/admin-index.html", "admin/admin-sites.html", "admin/admin-add-site.html", "admin/admin-edit-site.html", "admin/admin-nav.html", "admin/admin-nav-form.html", "admin/admin-users.html", "admin/admin-settings.html", "admin/admin-providers.html", "admin/admin-provider-edit.html", "admin/admin-stats.html", "admin/admin-submissions.html", "partials/*.html"))
+	return template.Must(template.New("shared.html").Funcs(funcMap).ParseFS(root, "error.html", "admin/admin-index.html", "admin/admin-sites.html", "admin/admin-add-site.html", "admin/admin-edit-site.html", "admin/admin-nav.html", "admin/admin-nav-form.html", "admin/admin-users.html", "admin/admin-settings.html", "admin/admin-providers.html", "admin/admin-provider-edit.html", "admin/admin-stats.html", "admin/admin-submissions.html", "admin/admin-categories.html", "admin/admin-tags.html", "partials/*.html"))
 }

@@ -21,6 +21,7 @@ var (
 	ErrTooManyPending     = errors.New("待审核投稿过多，请稍后再试")
 	ErrSubmissionNotFound = errors.New("投稿不存在")
 	ErrNotPending         = errors.New("该投稿已被处理，请刷新后重试")
+	ErrSubmissionCategory = errors.New("投稿分类已被删除，请先调整投稿分类")
 )
 
 // MaxPendingSubmissionsPerUser 单用户同时待审核的投稿上限，防止刷投稿。
@@ -29,16 +30,18 @@ const MaxPendingSubmissionsPerUser = 10
 const maxSubmissionTags = 10
 
 type SiteSubmissionService struct {
-	submissionRepo *repository.SiteSubmissionRepository
-	siteRepo       *repository.SiteRepository
-	siteService    *SiteService
+	submissionRepo  *repository.SiteSubmissionRepository
+	siteRepo        *repository.SiteRepository
+	siteService     *SiteService
+	categoryService *CategoryService
 }
 
 func NewSiteSubmissionService() *SiteSubmissionService {
 	return &SiteSubmissionService{
-		submissionRepo: repository.NewSiteSubmissionRepository(),
-		siteRepo:       repository.NewSiteRepository(),
-		siteService:    NewSiteService(),
+		submissionRepo:  repository.NewSiteSubmissionRepository(),
+		siteRepo:        repository.NewSiteRepository(),
+		siteService:     NewSiteService(),
+		categoryService: NewCategoryService(),
 	}
 }
 
@@ -61,20 +64,11 @@ func normalizeSubmissionURL(raw string) (string, error) {
 	return raw, nil
 }
 
-// normalizeSubmissionTags 按中英文逗号拆分标签，去空去重后以英文逗号重新拼接。
+// normalizeSubmissionTags limits member submissions after shared normalization.
 func normalizeSubmissionTags(raw string) (string, error) {
-	seen := make(map[string]struct{})
-	var tags []string
-	for _, t := range strings.FieldsFunc(raw, func(r rune) bool { return r == ',' || r == '，' }) {
-		t = strings.TrimSpace(t)
-		if t == "" {
-			continue
-		}
-		if _, ok := seen[t]; ok {
-			continue
-		}
-		seen[t] = struct{}{}
-		tags = append(tags, t)
+	tags, err := NormalizeTagNames(raw)
+	if err != nil {
+		return "", ErrInvalidTags
 	}
 	if len(tags) > maxSubmissionTags || len(strings.Join(tags, ",")) > 500 {
 		return "", ErrInvalidTags
@@ -104,8 +98,14 @@ func (s *SiteSubmissionService) Submit(userID int64, name, rawURL, description, 
 		logo = logo[:512]
 	}
 	category = strings.TrimSpace(category)
-	if len(category) > 100 {
-		category = category[:100]
+	if category != "" {
+		exists, err := s.categoryService.Exists(category)
+		if err != nil {
+			return 0, err
+		}
+		if !exists {
+			return 0, ErrCategoryNotFound
+		}
 	}
 	finalTags, err := normalizeSubmissionTags(tags)
 	if err != nil {
@@ -204,6 +204,15 @@ func (s *SiteSubmissionService) Approve(id, reviewerID int64) error {
 	}
 	if existing != nil {
 		return fmt.Errorf("%w（已存在同名收录：%s）", ErrSubmissionExists, existing.Name)
+	}
+	if submission.Category != "" {
+		exists, err := s.categoryService.Exists(submission.Category)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return ErrSubmissionCategory
+		}
 	}
 
 	var tags []string

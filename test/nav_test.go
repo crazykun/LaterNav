@@ -22,6 +22,11 @@ func TestIndexTemplateRendersConfiguredNavItems(t *testing.T) {
 		},
 		"isLoggedIn": false,
 		"username":   "",
+		"categories": []models.Category{
+			{ID: 1, Name: "AI对话", SortOrder: 10},
+			{ID: 2, Name: "编程 & 开发", SortOrder: 20},
+		},
+		"selectedCategory": "AI对话",
 	})
 	if err != nil {
 		t.Fatalf("ExecuteTemplate failed: %v", err)
@@ -37,8 +42,14 @@ func TestIndexTemplateRendersConfiguredNavItems(t *testing.T) {
 	if !strings.Contains(html, `>编程类工具入口</span>`) {
 		t.Fatalf("index.html did not render nav description tooltip")
 	}
-	if !strings.Contains(html, `href="/search?category=AI对话"`) {
-		t.Fatalf("index.html lost the fixed left category sidebar")
+	if !strings.Contains(html, `href="/search?category=AI%E5%AF%B9%E8%AF%9D"`) {
+		t.Fatalf("index.html did not render dynamic category URL: %s", html)
+	}
+	if !strings.Contains(html, `href="/search?category=%E7%BC%96%E7%A8%8B&#43;%26&#43;%E5%BC%80%E5%8F%91"`) {
+		t.Fatalf("index.html did not escape dynamic category URL: %s", html)
+	}
+	if strings.Contains(html, `href="/search?category=AI工具"`) {
+		t.Fatalf("index.html retained hardcoded category links: %s", html)
 	}
 }
 

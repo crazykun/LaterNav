@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><title>标签管理 - {{ .SiteName }}</title>{{ template "admin-head" . }}</head>
+<body class="admin-body">
+<div class="admin-shell">
+    {{ template "admin-sidebar" . }}
+    <div class="admin-main">
+        {{ template "admin-topbar" . }}
+        <main class="admin-content">
+            <section class="admin-toolbar-row">
+                <div class="admin-toolbar-meta">
+                    <span class="admin-chip">共 {{ .total }} 个标签</span>
+                    <form action="/admin/tags" method="GET" class="admin-user-search admin-taxonomy-actions">
+                        <input type="search" name="q" value="{{ .query }}" placeholder="搜索标签名称" class="admin-input">
+                        <button type="submit" class="admin-btn-primary">搜索</button>
+                        {{ if .query }}<a href="/admin/tags" class="admin-btn-secondary">清空</a>{{ end }}
+                    </form>
+                </div>
+                <form action="/admin/tags/add" method="POST" class="admin-user-search admin-taxonomy-actions">
+                    <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
+                    <input type="text" name="name" maxlength="100" required class="admin-input" placeholder="新标签名称">
+                    <button type="submit" class="admin-btn-primary">添加标签</button>
+                </form>
+            </section>
+            <section class="admin-surface overflow-hidden">
+                {{ template "admin-flash" . }}
+                <p class="text-sm text-gray-500 mb-4">使用数仅统计未删除的正式站点。删除会解除站点关联；合并会保留目标标签并删除源标签，操作不可撤销。</p>
+                <div class="overflow-x-auto">
+                    <table class="admin-table min-w-full">
+                        <thead><tr><th class="admin-table-head text-left">标签</th><th class="admin-table-head text-left">使用数</th><th class="admin-table-head text-left">合并到</th><th class="admin-table-head text-left">操作</th></tr></thead>
+                        <tbody>
+                        {{ range .tags }}{{ $sourceID := .ID }}
+                        <tr>
+                            <td class="admin-table-cell">
+                                <form action="/admin/tags/{{ .ID }}/rename" method="POST" class="admin-user-search admin-taxonomy-actions">
+                                    <input type="hidden" name="csrf_token" value="{{ $.csrfToken }}"><input type="hidden" name="q" value="{{ $.query }}"><input type="hidden" name="page" value="{{ $.page }}">
+                                    <input type="text" name="name" value="{{ .Name }}" maxlength="100" required class="admin-input" aria-label="标签名称">
+                                    <button type="submit" class="admin-btn-secondary admin-btn-sm">重命名</button>
+                                </form>
+                            </td>
+                            <td class="admin-table-cell"><span class="admin-badge">{{ .SiteCount }} 个站点</span></td>
+                            <td class="admin-table-cell">
+                                <form action="/admin/tags/{{ .ID }}/merge" method="POST" class="admin-user-search admin-taxonomy-actions" onsubmit="return confirm('确定将「{{ .Name }}」合并到所选标签吗？源标签将被删除。');">
+                                    <input type="hidden" name="csrf_token" value="{{ $.csrfToken }}"><input type="hidden" name="q" value="{{ $.query }}"><input type="hidden" name="page" value="{{ $.page }}">
+                                    <select name="target_id" required class="admin-input">
+                                        <option value="">选择目标标签</option>
+                                        {{ range $.allTags }}{{ if ne .ID $sourceID }}<option value="{{ .ID }}">{{ .Name }}</option>{{ end }}{{ end }}
+                                    </select>
+                                    <button type="submit" class="admin-btn-secondary admin-btn-sm">合并</button>
+                                </form>
+                            </td>
+                            <td class="admin-table-cell">
+                                <form action="/admin/tags/{{ .ID }}/delete" method="POST" onsubmit="return confirm('确定删除标签「{{ .Name }}」并解除所有站点关联吗？');">
+                                    <input type="hidden" name="csrf_token" value="{{ $.csrfToken }}"><input type="hidden" name="q" value="{{ $.query }}"><input type="hidden" name="page" value="{{ $.page }}">
+                                    <button type="submit" class="admin-btn-danger admin-btn-sm">删除</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {{ else }}<tr><td colspan="4" class="admin-table-cell text-center text-gray-400">暂无标签</td></tr>{{ end }}
+                        </tbody>
+                    </table>
+                </div>
+                {{ template "admin-pagination" . }}
+            </section>
+        </main>
+    </div>
+</div>
+</body>
+</html>

@@ -46,15 +46,13 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <div>
             <label for="category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">分类</label>
-            <input type="text" id="category" name="category" list="category-list" maxlength="100"
-                   placeholder="选填，如：AI 绘图"
-                   value="{{ with .values }}{{ .Category }}{{ end }}"
-                   class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
-            <datalist id="category-list">
+            <select id="category" name="category"
+                    class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
+                <option value="">未分类</option>
                 {{ range .categories }}
-                <option value="{{ . }}"></option>
+                <option value="{{ .Name }}" {{ if and $.values (eq $.values.Category .Name) }}selected{{ end }}>{{ .Name }}</option>
                 {{ end }}
-            </datalist>
+            </select>
         </div>
         <div>
             <label for="tags" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">标签</label>
