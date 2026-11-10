@@ -484,6 +484,20 @@ html {
     padding: 0.5rem 0.75rem;
 }
 
+/* Keep taxonomy controls on one line without stretching standalone delete buttons. */
+.admin-taxonomy-actions :is(.admin-btn-primary, .admin-btn-secondary, .admin-btn-danger) {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: max-content;
+    padding: 0.5rem 0.875rem;
+    white-space: nowrap;
+}
+
+.admin-taxonomy-table td > form > .admin-btn-sm {
+    width: auto;
+    white-space: nowrap;
+}
+
 .admin-oauth-cell {
     min-width: 250px;
 }

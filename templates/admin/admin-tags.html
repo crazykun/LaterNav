@@ -26,7 +26,7 @@
                 {{ template "admin-flash" . }}
                 <p class="text-sm text-gray-500 mb-4">使用数仅统计未删除的正式站点。删除会解除站点关联；合并会保留目标标签并删除源标签，操作不可撤销。</p>
                 <div class="overflow-x-auto">
-                    <table class="admin-table min-w-full">
+                    <table class="admin-table admin-taxonomy-table min-w-full">
                         <thead><tr><th class="admin-table-head text-left">标签</th><th class="admin-table-head text-left">使用数</th><th class="admin-table-head text-left">合并到</th><th class="admin-table-head text-left">操作</th></tr></thead>
                         <tbody>
                         {{ range .tags }}{{ $sourceID := .ID }}
