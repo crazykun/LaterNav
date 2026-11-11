@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><title>友情链接 - {{ .SiteName }}</title>{{ template "admin-head" . }}</head>
+<body class="admin-body">
+<div class="admin-shell">
+    {{ template "admin-sidebar" . }}
+    <div class="admin-main">
+        {{ template "admin-topbar" . }}
+        <main class="admin-content">
+            <section class="admin-toolbar-row">
+                <div class="admin-toolbar-meta">
+                    <span class="admin-chip">{{ len .links }} 个友链</span>
+                </div>
+                <a href="/admin/friend-links/add" class="admin-btn-primary">添加友链</a>
+            </section>
+            <section class="admin-surface overflow-hidden">
+                {{ template "admin-flash" . }}
+                <p class="text-sm text-gray-500 mb-4">启用的友链将按排序显示在首页站点卡片下方；停用或删除后立即从首页消失。</p>
+                <div class="overflow-x-auto">
+                    <table class="admin-table min-w-full">
+                        <thead><tr><th class="admin-table-head text-left">站点</th><th class="admin-table-head text-left">状态</th><th class="admin-table-head text-left">排序</th><th class="admin-table-head text-left">操作</th></tr></thead>
+                        <tbody>
+                        {{ range .links }}
+                        <tr>
+                            <td class="admin-table-cell">
+                                <div class="flex items-center gap-3">
+                                    {{ if .Logo }}
+                                    <img src="{{ .Logo }}" alt="" class="admin-oauth-avatar" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                                    <span class="admin-oauth-avatar admin-oauth-avatar-fallback" style="display:none">{{ .Name | printf "%.1s" }}</span>
+                                    {{ else }}
+                                    <span class="admin-oauth-avatar admin-oauth-avatar-fallback">{{ .Name | printf "%.1s" }}</span>
+                                    {{ end }}
+                                    <div class="min-w-0">
+                                        <div class="text-sm font-medium text-gray-900">{{ .Name }}</div>
+                                        <a href="{{ .URL }}" target="_blank" rel="noopener noreferrer" class="text-xs text-blue-600 hover:underline break-all">{{ .URL }}</a>
+                                        {{ if .Description }}<div class="text-xs text-gray-500 mt-1">{{ .Description }}</div>{{ end }}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="admin-table-cell">
+                                <form action="/admin/friend-links/{{ .ID }}/toggle" method="POST">
+                                    <input type="hidden" name="csrf_token" value="{{ $.csrfToken }}">
+                                    <button type="submit" class="admin-btn-secondary" style="font-size: 0.75rem; padding: 0.375rem 0.75rem;" title="点击切换状态">
+                                        {{ if .Enabled }}
+                                        <span class="admin-badge">启用</span>
+                                        {{ else }}
+                                        <span class="admin-badge admin-badge-danger">停用</span>
+                                        {{ end }}
+                                    </button>
+                                </form>
+                            </td>
+                            <td class="admin-table-cell">
+                                <div class="admin-user-actions">
+                                    <form action="/admin/friend-links/{{ .ID }}/move" method="POST">
+                                        <input type="hidden" name="csrf_token" value="{{ $.csrfToken }}"><input type="hidden" name="direction" value="up">
+                                        <button type="submit" class="admin-btn-secondary admin-btn-sm" title="上移">↑</button>
+                                    </form>
+                                    <form action="/admin/friend-links/{{ .ID }}/move" method="POST">
+                                        <input type="hidden" name="csrf_token" value="{{ $.csrfToken }}"><input type="hidden" name="direction" value="down">
+                                        <button type="submit" class="admin-btn-secondary admin-btn-sm" title="下移">↓</button>
+                                    </form>
+                                </div>
+                            </td>
+                            <td class="admin-table-cell">
+                                <div class="admin-user-actions">
+                                    <a href="/admin/friend-links/edit/{{ .ID }}" class="admin-btn-secondary admin-btn-sm">编辑</a>
+                                    <form action="/admin/friend-links/{{ .ID }}/delete" method="POST" onsubmit="return confirm('确定删除友链「{{ .Name }}」吗？');">
+                                        <input type="hidden" name="csrf_token" value="{{ $.csrfToken }}">
+                                        <button type="submit" class="admin-btn-danger admin-btn-sm">删除</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {{ else }}
+                        <tr><td colspan="4" class="admin-table-cell text-center text-gray-400" style="padding:2.5rem 0">还没有友链，点击右上角添加</td></tr>
+                        {{ end }}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+</body>
+</html>

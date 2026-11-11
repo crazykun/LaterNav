@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"html/template"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -17,6 +18,7 @@ type PageHandler struct {
 	navService        *services.NavService
 	submissionService *services.SiteSubmissionService
 	categoryService   *services.CategoryService
+	friendLinkService *services.FriendLinkService
 	pageTemplates     map[string]*template.Template
 }
 
@@ -26,6 +28,7 @@ func NewPageHandler(pageTemplates map[string]*template.Template) *PageHandler {
 		navService:        services.NewNavService(),
 		submissionService: services.NewSiteSubmissionService(),
 		categoryService:   services.NewCategoryService(),
+		friendLinkService: services.NewFriendLinkService(),
 		pageTemplates:     pageTemplates,
 	}
 }
@@ -98,14 +101,20 @@ func (h *PageHandler) HomePage(c *gin.Context) {
 	}
 
 	categories, _ := h.categoryService.ListAll()
+	friendLinks, err := h.friendLinkService.ListEnabled()
+	if err != nil {
+		log.Printf("list friend links: %v", err)
+		friendLinks = nil
+	}
 	copyright, _ := c.Get("Copyright")
 
 	if err := h.renderPage(c, "index.html", gin.H{
-		"sites":      sites,
-		"categories": categories,
-		"Copyright":  copyright,
-		"isLoggedIn": c.GetBool("isLoggedIn"),
-		"username":   c.GetString("username"),
+		"sites":       sites,
+		"categories":  categories,
+		"friendLinks": friendLinks,
+		"Copyright":   copyright,
+		"isLoggedIn":  c.GetBool("isLoggedIn"),
+		"username":    c.GetString("username"),
 	}); err != nil {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error": "页面渲染失败",

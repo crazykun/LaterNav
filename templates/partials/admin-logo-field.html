@@ -1,10 +1,12 @@
 {{ define "admin-logo-field" }}
 {{ $logo := "" }}
-{{ with .site }}{{ $logo = .Logo }}{{ end }}
+{{ with .logoValue }}{{ $logo = . }}{{ end }}
+{{ with .site }}{{ if not $.logoValue }}{{ $logo = .Logo }}{{ end }}{{ end }}
+{{ with .item }}{{ if not $.logoValue }}{{ $logo = .Logo }}{{ end }}{{ end }}
 <div>
     <label for="logo" class="admin-label">Logo路径</label>
     <div style="display: flex; gap: 0.5rem;">
-        <input type="text" id="logo" name="Logo" value="{{ $logo }}" class="admin-input" placeholder="/static/img/...">
+        <input type="text" id="logo" name="Logo" value="{{ $logo }}" class="admin-input" placeholder="/static/img/... 或 https://...">
         <button type="button" id="logoUploadBtn" class="admin-btn-secondary" style="white-space: nowrap;">上传图片</button>
     </div>
     <input type="file" id="logoFileInput" accept=".png,.jpg,.jpeg,.gif,.webp,.ico" style="display: none;">

@@ -1,0 +1,13 @@
+-- 友情链接：后台配置，首页网格下方展示。
+CREATE TABLE IF NOT EXISTS friend_links (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    url VARCHAR(512) NOT NULL,
+    description VARCHAR(255) NOT NULL DEFAULT '',
+    logo VARCHAR(512) NOT NULL DEFAULT '',
+    sort_order INT NOT NULL DEFAULT 0,
+    enabled TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_friend_link_enabled_sort (enabled, sort_order, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

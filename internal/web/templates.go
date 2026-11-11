@@ -91,5 +91,5 @@ func BuildPageTemplates(root fs.FS) map[string]*template.Template {
 }
 
 func BuildSharedTemplates(root fs.FS) *template.Template {
-	return template.Must(template.New("shared.html").Funcs(funcMap).ParseFS(root, "error.html", "admin/admin-index.html", "admin/admin-sites.html", "admin/admin-add-site.html", "admin/admin-edit-site.html", "admin/admin-nav.html", "admin/admin-nav-form.html", "admin/admin-users.html", "admin/admin-settings.html", "admin/admin-providers.html", "admin/admin-provider-edit.html", "admin/admin-stats.html", "admin/admin-submissions.html", "admin/admin-categories.html", "admin/admin-tags.html", "partials/*.html"))
+	return template.Must(template.New("shared.html").Funcs(funcMap).ParseFS(root, "error.html", "admin/admin-index.html", "admin/admin-sites.html", "admin/admin-add-site.html", "admin/admin-edit-site.html", "admin/admin-nav.html", "admin/admin-nav-form.html", "admin/admin-users.html", "admin/admin-settings.html", "admin/admin-providers.html", "admin/admin-provider-edit.html", "admin/admin-stats.html", "admin/admin-submissions.html", "admin/admin-categories.html", "admin/admin-tags.html", "admin/admin-friend-links.html", "admin/admin-friend-link-form.html", "partials/*.html"))
 }

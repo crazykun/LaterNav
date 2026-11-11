@@ -16,10 +16,11 @@
     <a href="/admin/tags" class="admin-nav-item {{ if eq .adminSection "tags" }}admin-nav-item-active{{ end }}">标签管理</a>
     <a href="/admin/submissions" class="admin-nav-item {{ if eq .adminSection "submissions" }}admin-nav-item-active{{ end }}">站点审核{{ if .pendingSubmissionCount }} <span class="ml-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">{{ .pendingSubmissionCount }}</span>{{ end }}</a>
     <a href="/admin/nav" class="admin-nav-item {{ if eq .adminSection "nav" }}admin-nav-item-active{{ end }}">导航管理</a>
+    <a href="/admin/friend-links" class="admin-nav-item {{ if eq .adminSection "friend-links" }}admin-nav-item-active{{ end }}">友情链接</a>
     <a href="/admin/stats" class="admin-nav-item {{ if eq .adminSection "stats" }}admin-nav-item-active{{ end }}">访问统计</a>
     <a href="/admin/users" class="admin-nav-item {{ if eq .adminSection "users" }}admin-nav-item-active{{ end }}">用户管理</a>
-    <a href="/admin/settings" class="admin-nav-item {{ if eq .adminSection "settings" }}admin-nav-item-active{{ end }}">系统设置</a>
     <a href="/admin/oidc" class="admin-nav-item {{ if eq .adminSection "oidc" }}admin-nav-item-active{{ end }}">三方登录</a>
+    <a href="/admin/settings" class="admin-nav-item {{ if eq .adminSection "settings" }}admin-nav-item-active{{ end }}">系统设置</a>
   </nav>
 </aside>
 {{ end }}

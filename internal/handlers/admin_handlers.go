@@ -63,6 +63,7 @@ type AdminHandler struct {
 	submissionService *services.SiteSubmissionService
 	categoryService   *services.CategoryService
 	tagService        *services.TagService
+	friendLinkService *services.FriendLinkService
 }
 
 func NewAdminHandler() *AdminHandler {
@@ -73,6 +74,7 @@ func NewAdminHandler() *AdminHandler {
 		submissionService: services.NewSiteSubmissionService(),
 		categoryService:   services.NewCategoryService(),
 		tagService:        services.NewTagService(),
+		friendLinkService: services.NewFriendLinkService(),
 	}
 }
 
