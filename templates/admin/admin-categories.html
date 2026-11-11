@@ -19,6 +19,9 @@
                 <form action="/admin/categories/add" method="POST" class="admin-user-search admin-taxonomy-actions">
                     <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
                     <input type="text" name="name" maxlength="100" required class="admin-input" placeholder="新分类名称">
+                    <select name="icon" class="admin-input" aria-label="新分类图标">
+                        {{ range .iconOptions }}<option value="{{ .Value }}">{{ .Label }}</option>{{ end }}
+                    </select>
                     <button type="submit" class="admin-btn-primary">添加分类</button>
                 </form>
             </section>
@@ -29,14 +32,17 @@
                     <table class="admin-table admin-taxonomy-table min-w-full">
                         <thead><tr><th class="admin-table-head text-left">分类</th><th class="admin-table-head text-left">使用数</th><th class="admin-table-head text-left">排序</th><th class="admin-table-head text-left">操作</th></tr></thead>
                         <tbody>
-                        {{ range .categories }}
+                        {{ range .categories }}{{ $rowIcon := .Icon }}
                         <tr>
                             <td class="admin-table-cell">
                                 <form action="/admin/categories/{{ .ID }}/rename" method="POST" class="admin-user-search admin-taxonomy-actions">
                                     <input type="hidden" name="csrf_token" value="{{ $.csrfToken }}">
                                     <input type="hidden" name="q" value="{{ $.query }}"><input type="hidden" name="page" value="{{ $.page }}">
                                     <input type="text" name="name" value="{{ .Name }}" maxlength="100" required class="admin-input" aria-label="分类名称">
-                                    <button type="submit" class="admin-btn-secondary admin-btn-sm">重命名</button>
+                                    <select name="icon" class="admin-input" aria-label="分类图标">
+                                        {{ range $.iconOptions }}<option value="{{ .Value }}" {{ if eq .Value $rowIcon }}selected{{ end }}>{{ .Label }}</option>{{ end }}
+                                    </select>
+                                    <button type="submit" class="admin-btn-secondary admin-btn-sm">保存</button>
                                 </form>
                             </td>
                             <td class="admin-table-cell"><span class="admin-badge">{{ .SiteCount }} 个站点</span></td>

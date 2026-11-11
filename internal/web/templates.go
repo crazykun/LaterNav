@@ -60,6 +60,27 @@ var funcMap = template.FuncMap{
 		}
 		return pages
 	},
+	// categoryIconData 分类图标：管理员显式设置的优先，否则按名称关键词自动匹配。
+	"categoryIconData": func(name, icon string) map[string]string {
+		effective := ""
+		switch icon {
+		case "grid", "chat", "create", "code", "tool", "star", "link":
+			effective = icon
+		}
+		if effective == "" {
+			switch {
+			case strings.Contains(name, "对话"), strings.Contains(name, "聊天"), strings.Contains(name, "助手"):
+				effective = "chat"
+			case strings.Contains(name, "编程"), strings.Contains(name, "代码"), strings.Contains(name, "开发"):
+				effective = "code"
+			case strings.Contains(name, "创作"), strings.Contains(name, "绘画"), strings.Contains(name, "图像"), strings.Contains(name, "设计"):
+				effective = "create"
+			default:
+				effective = "tool"
+			}
+		}
+		return map[string]string{"Icon": effective}
+	},
 	// splitTags 把逗号分隔的标签字符串拆成去空去重的切片，供审核页展示。
 	"splitTags": func(raw string) []string {
 		seen := make(map[string]struct{})

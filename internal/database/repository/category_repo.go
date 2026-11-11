@@ -12,8 +12,14 @@ type CategoryRepository struct{ db *sql.DB }
 
 func NewCategoryRepository() *CategoryRepository { return &CategoryRepository{db: database.DB} }
 
+const categoryColumns = `id, name, icon, sort_order, created_at, updated_at`
+
+func scanCategory(scan func(dest ...interface{}) error, c *models.Category) error {
+	return scan(&c.ID, &c.Name, &c.Icon, &c.SortOrder, &c.CreatedAt, &c.UpdatedAt)
+}
+
 func (r *CategoryRepository) ListAll() ([]models.Category, error) {
-	rows, err := r.db.Query(`SELECT id, name, sort_order, created_at, updated_at FROM categories ORDER BY sort_order, id`)
+	rows, err := r.db.Query(`SELECT ` + categoryColumns + ` FROM categories ORDER BY sort_order, id`)
 	if err != nil {
 		return nil, fmt.Errorf("list categories: %w", err)
 	}
@@ -21,7 +27,7 @@ func (r *CategoryRepository) ListAll() ([]models.Category, error) {
 	var categories []models.Category
 	for rows.Next() {
 		var c models.Category
-		if err := rows.Scan(&c.ID, &c.Name, &c.SortOrder, &c.CreatedAt, &c.UpdatedAt); err != nil {
+		if err := scanCategory(rows.Scan, &c); err != nil {
 			return nil, fmt.Errorf("scan category: %w", err)
 		}
 		categories = append(categories, c)
@@ -31,12 +37,11 @@ func (r *CategoryRepository) ListAll() ([]models.Category, error) {
 
 func (r *CategoryRepository) GetByID(id int64) (*models.Category, error) {
 	var c models.Category
-	err := r.db.QueryRow(`SELECT id, name, sort_order, created_at, updated_at FROM categories WHERE id = ?`, id).
-		Scan(&c.ID, &c.Name, &c.SortOrder, &c.CreatedAt, &c.UpdatedAt)
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
-	if err != nil {
+	err := r.db.QueryRow(`SELECT `+categoryColumns+` FROM categories WHERE id = ?`, id)
+	if err := scanCategory(err.Scan, &c); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("get category: %w", err)
 	}
 	return &c, nil
@@ -44,12 +49,11 @@ func (r *CategoryRepository) GetByID(id int64) (*models.Category, error) {
 
 func (r *CategoryRepository) GetByName(name string) (*models.Category, error) {
 	var c models.Category
-	err := r.db.QueryRow(`SELECT id, name, sort_order, created_at, updated_at FROM categories WHERE name = ?`, name).
-		Scan(&c.ID, &c.Name, &c.SortOrder, &c.CreatedAt, &c.UpdatedAt)
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
-	if err != nil {
+	err := r.db.QueryRow(`SELECT `+categoryColumns+` FROM categories WHERE name = ?`, name)
+	if err := scanCategory(err.Scan, &c); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("get category by name: %w", err)
 	}
 	return &c, nil
@@ -63,7 +67,7 @@ func (r *CategoryRepository) Count(query string) (int64, error) {
 
 func (r *CategoryRepository) ListPage(query string, limit, offset int) ([]models.CategoryUsage, error) {
 	rows, err := r.db.Query(`
-		SELECT c.id, c.name, c.sort_order, c.created_at, c.updated_at,
+		SELECT c.id, c.name, c.icon, c.sort_order, c.created_at, c.updated_at,
 			(SELECT COUNT(*) FROM sites s WHERE s.category = c.name) AS site_count
 		FROM categories c
 		WHERE ? = '' OR c.name LIKE ?
@@ -75,7 +79,7 @@ func (r *CategoryRepository) ListPage(query string, limit, offset int) ([]models
 	categories := make([]models.CategoryUsage, 0, limit)
 	for rows.Next() {
 		var c models.CategoryUsage
-		if err := rows.Scan(&c.ID, &c.Name, &c.SortOrder, &c.CreatedAt, &c.UpdatedAt, &c.SiteCount); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Icon, &c.SortOrder, &c.CreatedAt, &c.UpdatedAt, &c.SiteCount); err != nil {
 			return nil, fmt.Errorf("scan category usage: %w", err)
 		}
 		categories = append(categories, c)
@@ -83,8 +87,8 @@ func (r *CategoryRepository) ListPage(query string, limit, offset int) ([]models
 	return categories, rows.Err()
 }
 
-func (r *CategoryRepository) Create(name string) (int64, error) {
-	result, err := r.db.Exec(`INSERT INTO categories (name, sort_order) SELECT ?, COALESCE(MAX(sort_order), 0) + 10 FROM categories`, name)
+func (r *CategoryRepository) Create(name, icon string) (int64, error) {
+	result, err := r.db.Exec(`INSERT INTO categories (name, icon, sort_order) SELECT ?, ?, COALESCE(MAX(sort_order), 0) + 10 FROM categories`, name, icon)
 	if err != nil {
 		return 0, fmt.Errorf("create category: %w", err)
 	}
@@ -92,13 +96,13 @@ func (r *CategoryRepository) Create(name string) (int64, error) {
 }
 
 // Rename updates the master record and every live reference in one transaction.
-func (r *CategoryRepository) Rename(id int64, oldName, newName string) error {
+func (r *CategoryRepository) Rename(id int64, oldName, newName, icon string) error {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
-	if _, err := tx.Exec(`UPDATE categories SET name = ? WHERE id = ?`, newName, id); err != nil {
+	if _, err := tx.Exec(`UPDATE categories SET name = ?, icon = ? WHERE id = ?`, newName, icon, id); err != nil {
 		return fmt.Errorf("rename category: %w", err)
 	}
 	if _, err := tx.Exec(`UPDATE sites SET category = ?, updated_at = NOW() WHERE category = ?`, newName, oldName); err != nil {

@@ -51,6 +51,13 @@ func TestIndexTemplateRendersConfiguredNavItems(t *testing.T) {
 	if strings.Contains(html, `href="/search?category=AI工具"`) {
 		t.Fatalf("index.html retained hardcoded category links: %s", html)
 	}
+	// AI对话/编程&开发 未显式设置图标时按名称关键词自动匹配对应图标。
+	if !strings.Contains(html, `d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418`) {
+		t.Fatalf("index.html did not render auto-matched chat icon for AI对话: %s", html)
+	}
+	if !strings.Contains(html, `d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"`) {
+		t.Fatalf("index.html did not render auto-matched code icon: %s", html)
+	}
 }
 
 func TestIndexTemplateHandlesMissingNavItems(t *testing.T) {

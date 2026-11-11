@@ -19,7 +19,7 @@ func TestCategoryRenameSynchronizesLiveReferences(t *testing.T) {
 	db, _ := sql.Open(name, "")
 	defer db.Close()
 	repo := &CategoryRepository{db: db}
-	if err := repo.Rename(7, "旧分类", "新分类"); err != nil {
+	if err := repo.Rename(7, "旧分类", "新分类", "chat"); err != nil {
 		t.Fatal(err)
 	}
 	stub.mu.Lock()

@@ -80,8 +80,21 @@ func validCategoryName(name string) (string, error) {
 	return name, nil
 }
 
-func (s *CategoryService) Create(name string) error {
+// validCategoryIcon 空值表示按名称自动匹配，否则必须是导航图标白名单里的键。
+func validCategoryIcon(icon string) (string, error) {
+	icon = strings.TrimSpace(icon)
+	if icon == "" || IsValidNavIcon(icon) {
+		return icon, nil
+	}
+	return "", ErrInvalidCategoryName
+}
+
+func (s *CategoryService) Create(name, icon string) error {
 	name, err := validCategoryName(name)
+	if err != nil {
+		return err
+	}
+	icon, err = validCategoryIcon(icon)
 	if err != nil {
 		return err
 	}
@@ -92,12 +105,16 @@ func (s *CategoryService) Create(name string) error {
 	if existing != nil {
 		return ErrCategoryExists
 	}
-	_, err = s.repo.Create(name)
+	_, err = s.repo.Create(name, icon)
 	return err
 }
 
-func (s *CategoryService) Rename(id int64, name string) error {
+func (s *CategoryService) Rename(id int64, name, icon string) error {
 	name, err := validCategoryName(name)
+	if err != nil {
+		return err
+	}
+	icon, err = validCategoryIcon(icon)
 	if err != nil {
 		return err
 	}
@@ -108,17 +125,19 @@ func (s *CategoryService) Rename(id int64, name string) error {
 	if category == nil {
 		return ErrCategoryNotFound
 	}
-	if category.Name == name {
+	if category.Name == name && category.Icon == icon {
 		return nil
 	}
-	existing, err := s.repo.GetByName(name)
-	if err != nil {
-		return err
+	if category.Name != name {
+		existing, err := s.repo.GetByName(name)
+		if err != nil {
+			return err
+		}
+		if existing != nil {
+			return ErrCategoryExists
+		}
 	}
-	if existing != nil {
-		return ErrCategoryExists
-	}
-	return s.repo.Rename(id, category.Name, name)
+	return s.repo.Rename(id, category.Name, name, icon)
 }
 
 func (s *CategoryService) Delete(id int64) error {

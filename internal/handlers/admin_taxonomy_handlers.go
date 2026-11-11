@@ -80,6 +80,25 @@ func taxonomyError(err error) string {
 	}
 }
 
+// categoryIconOptions 与导航管理共用图标集，首位"自动"表示按分类名匹配。
+func categoryIconOptions() []gin.H {
+	labels := map[string]string{
+		"grid":   "网格",
+		"chat":   "对话",
+		"create": "创作",
+		"code":   "编程",
+		"tool":   "工具",
+		"star":   "星标",
+		"link":   "链接",
+	}
+	options := make([]gin.H, 0, len(services.IconKeys)+1)
+	options = append(options, gin.H{"Value": "", "Label": "自动匹配"})
+	for _, k := range services.IconKeys {
+		options = append(options, gin.H{"Value": k, "Label": labels[k] + "（" + k + "）"})
+	}
+	return options
+}
+
 func (h *AdminHandler) renderAdminCategories(c *gin.Context, errorMsg string) {
 	query, page := taxonomyPage(c)
 	data, err := h.categoryService.Page(query, page, 20)
@@ -96,6 +115,7 @@ func (h *AdminHandler) renderAdminCategories(c *gin.Context, errorMsg string) {
 	common["totalPages"] = data.TotalPages
 	common["query"] = query
 	common["basePath"] = "/admin/categories"
+	common["iconOptions"] = categoryIconOptions()
 	common["csrfToken"] = taxonomyCSRF(c)
 	if errorMsg != "" {
 		common["error"] = errorMsg
@@ -110,7 +130,7 @@ func (h *AdminHandler) AdminCategoryAdd(c *gin.Context) {
 		c.AbortWithStatus(http.StatusForbidden)
 		return
 	}
-	if err := h.categoryService.Create(c.PostForm("name")); err != nil {
+	if err := h.categoryService.Create(c.PostForm("name"), c.PostForm("icon")); err != nil {
 		h.renderAdminCategories(c, taxonomyError(err))
 		return
 	}
@@ -127,7 +147,7 @@ func (h *AdminHandler) AdminCategoryRename(c *gin.Context) {
 		h.renderAdminCategories(c, services.ErrCategoryNotFound.Error())
 		return
 	}
-	if err := h.categoryService.Rename(id, c.PostForm("name")); err != nil {
+	if err := h.categoryService.Rename(id, c.PostForm("name"), c.PostForm("icon")); err != nil {
 		h.renderAdminCategories(c, taxonomyError(err))
 		return
 	}

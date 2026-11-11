@@ -17,7 +17,7 @@
                 </a>
                 {{ range .categories }}
                 <a href="{{ categoryURL .Name }}" class="px-3 py-2.5 text-sm rounded-xl font-medium transition-all duration-200 text-center flex items-center justify-center gap-2 {{ if eq $.selectedCategory .Name }}bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400{{ else }}text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700{{ end }}">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h10v10H7z"></path></svg>
+                    {{ template "nav-icon" (categoryIconData .Name .Icon) }}
                     {{ .Name }}
                 </a>
                 {{ end }}
