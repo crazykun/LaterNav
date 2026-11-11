@@ -81,6 +81,10 @@ var funcMap = template.FuncMap{
 		}
 		return map[string]string{"Icon": effective}
 	},
+	// iconPicker 组装可视化图标选择器的数据：当前值、自动匹配预览名、可选项。
+	"iconPicker": func(current, previewName string, options interface{}) map[string]interface{} {
+		return map[string]interface{}{"Current": current, "PreviewName": previewName, "Options": options}
+	},
 	// splitTags 把逗号分隔的标签字符串拆成去空去重的切片，供审核页展示。
 	"splitTags": func(raw string) []string {
 		seen := make(map[string]struct{})

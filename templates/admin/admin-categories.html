@@ -19,9 +19,7 @@
                 <form action="/admin/categories/add" method="POST" class="admin-user-search admin-taxonomy-actions">
                     <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
                     <input type="text" name="name" maxlength="100" required class="admin-input" placeholder="新分类名称">
-                    <select name="icon" class="admin-input" aria-label="新分类图标">
-                        {{ range .iconOptions }}<option value="{{ .Value }}">{{ .Label }}</option>{{ end }}
-                    </select>
+                    {{ template "admin-icon-picker" (iconPicker "" "" .iconOptions) }}
                     <button type="submit" class="admin-btn-primary">添加分类</button>
                 </form>
             </section>
@@ -39,9 +37,7 @@
                                     <input type="hidden" name="csrf_token" value="{{ $.csrfToken }}">
                                     <input type="hidden" name="q" value="{{ $.query }}"><input type="hidden" name="page" value="{{ $.page }}">
                                     <input type="text" name="name" value="{{ .Name }}" maxlength="100" required class="admin-input" aria-label="分类名称">
-                                    <select name="icon" class="admin-input" aria-label="分类图标">
-                                        {{ range $.iconOptions }}<option value="{{ .Value }}" {{ if eq .Value $rowIcon }}selected{{ end }}>{{ .Label }}</option>{{ end }}
-                                    </select>
+                                    {{ template "admin-icon-picker" (iconPicker $rowIcon .Name $.iconOptions) }}
                                     <button type="submit" class="admin-btn-secondary admin-btn-sm">保存</button>
                                 </form>
                             </td>
@@ -73,6 +69,7 @@
                 </div>
                 {{ template "admin-pagination" . }}
             </section>
+            {{ template "admin-icon-picker-script" . }}
         </main>
     </div>
 </div>

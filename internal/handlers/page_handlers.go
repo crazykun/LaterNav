@@ -10,6 +10,7 @@ import (
 
 	"ai-later-nav/internal/models"
 	"ai-later-nav/internal/services"
+	"ai-later-nav/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -105,6 +106,10 @@ func (h *PageHandler) HomePage(c *gin.Context) {
 	if err != nil {
 		log.Printf("list friend links: %v", err)
 		friendLinks = nil
+	}
+	for i := range friendLinks {
+		friendLinks[i].Color = utils.GenerateColorFromName(friendLinks[i].Name)
+		friendLinks[i].Initials = utils.GetInitialsFromName(friendLinks[i].Name)
 	}
 	copyright, _ := c.Get("Copyright")
 

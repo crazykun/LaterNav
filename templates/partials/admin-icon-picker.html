@@ -1,0 +1,30 @@
+{{ define "admin-icon-picker" }}
+<div class="admin-icon-picker" aria-label="选择图标">
+    <input type="hidden" name="icon" value="{{ .Current }}">
+    <button type="button" class="admin-icon-option {{ if eq .Current "" }}admin-icon-option-active{{ end }}"
+            data-icon-value="" title="自动匹配（按分类名）">{{ template "nav-icon" (categoryIconData .PreviewName "") }}</button>
+    {{ range .Options }}
+    <button type="button" class="admin-icon-option {{ if eq .Value $.Current }}admin-icon-option-active{{ end }}"
+            data-icon-value="{{ .Value }}" title="{{ .Label }}">{{ template "nav-icon" (categoryIconData "" .Value) }}</button>
+    {{ end }}
+</div>
+{{ end }}
+
+{{ define "admin-icon-picker-script" }}
+<script>
+(function () {
+    document.querySelectorAll('.admin-icon-picker').forEach(function (picker) {
+        picker.addEventListener('click', function (e) {
+            var btn = e.target.closest('.admin-icon-option');
+            if (!btn) return;
+            e.preventDefault();
+            picker.querySelectorAll('.admin-icon-option').forEach(function (b) {
+                b.classList.remove('admin-icon-option-active');
+            });
+            btn.classList.add('admin-icon-option-active');
+            picker.querySelector('input[name="icon"]').value = btn.getAttribute('data-icon-value');
+        });
+    });
+})();
+</script>
+{{ end }}

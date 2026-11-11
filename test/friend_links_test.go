@@ -13,8 +13,8 @@ import (
 
 func friendLinkFixture() []models.FriendLink {
 	return []models.FriendLink{
-		{ID: 1, Name: "示例博客", URL: "https://blog.example.com", Description: "技术与生活", Logo: "https://blog.example.com/logo.png", SortOrder: 10, Enabled: true, CreatedAt: time.Now()},
-		{ID: 2, Name: "开发文档", URL: "https://docs.example.com", SortOrder: 20, Enabled: true, CreatedAt: time.Now()},
+		{ID: 1, Name: "示例博客", URL: "https://blog.example.com", Description: "技术与生活", Logo: "https://blog.example.com/logo.png", SortOrder: 10, Enabled: true, Color: "#3b82f6", Initials: "示", CreatedAt: time.Now()},
+		{ID: 2, Name: "开发文档", URL: "https://docs.example.com", SortOrder: 20, Enabled: true, Color: "#10b981", Initials: "开", CreatedAt: time.Now()},
 	}
 }
 
@@ -40,12 +40,15 @@ func TestIndexTemplateRendersFriendLinks(t *testing.T) {
 	if !strings.Contains(html, "技术与生活") || !strings.Contains(html, "开发文档") {
 		t.Fatalf("friend link names/descriptions missing: %s", html)
 	}
-	// 有 Logo 的项含图片回退，无 Logo 的项直接显示首字。
+	// 有 Logo 的项含图片回退，无 Logo 的项显示名称配色首字头像。
 	if !strings.Contains(html, `src="https://blog.example.com/logo.png"`) {
 		t.Fatalf("friend link logo missing: %s", html)
 	}
-	if strings.Count(html, `bg-gradient-to-br from-blue-500 to-indigo-600`) < 2 {
-		t.Fatalf("initial fallback avatars missing: %s", html)
+	if !strings.Contains(html, `style="background-color: #10b981"`) || !strings.Contains(html, ">开</span>") {
+		t.Fatalf("colored initials avatar missing: %s", html)
+	}
+	if !strings.Contains(html, `aria-labelledby="friend-links-title"`) || !strings.Contains(html, "2 个站点") {
+		t.Fatalf("friend links header/count missing: %s", html)
 	}
 }
 
