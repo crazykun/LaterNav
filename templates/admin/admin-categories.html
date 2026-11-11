@@ -23,9 +23,9 @@
                     <button type="submit" class="admin-btn-primary">添加分类</button>
                 </form>
             </section>
-            <section class="admin-surface overflow-hidden">
+            <section class="admin-surface admin-surface-table overflow-hidden">
                 {{ template "admin-flash" . }}
-                <p class="text-sm text-gray-500 mb-4">使用数统计全部分类下的站点（含已删除站点），避免恢复站点后产生游离分类。使用中的分类不能删除，请先迁移站点。</p>
+                <p class="text-sm text-gray-500 mb-4 admin-table-note">使用数统计全部分类下的站点（含已删除站点），避免恢复站点后产生游离分类。使用中的分类不能删除，请先迁移站点。</p>
                 <div class="overflow-x-auto">
                     <table class="admin-table admin-taxonomy-table min-w-full">
                         <thead><tr><th class="admin-table-head text-left">分类</th><th class="admin-table-head text-left">使用数</th><th class="admin-table-head text-left">排序</th><th class="admin-table-head text-left">操作</th></tr></thead>

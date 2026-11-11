@@ -144,9 +144,21 @@ html {
     transition: all 0.3s ease !important;
 }
 
-/* 卡片装饰元素：移除光晕，减少视觉干扰 */
+/* 卡片右上角光晕：保留，但克制为小面积渐显 */
 .card-decoration {
-    display: none;
+    position: absolute;
+    top: -30%;
+    right: -30%;
+    width: 60%;
+    height: 60%;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.4s ease-out;
+    pointer-events: none;
+}
+
+.card-hover:hover .card-decoration {
+    opacity: 1;
 }
 
 /* 卡片悬停时的文字效果 */
@@ -654,6 +666,34 @@ html {
     padding: 1.5rem;
 }
 
+/* Table surfaces: header sits flush against the rounded frame. */
+.admin-surface-table {
+    padding: 0;
+}
+
+.admin-surface-table .admin-table thead th:first-child {
+    border-top-left-radius: 1rem;
+}
+
+.admin-surface-table .admin-table thead th:last-child {
+    border-top-right-radius: 1rem;
+}
+
+.admin-surface-table > .admin-table-note,
+.admin-surface-table > .admin-alert,
+.admin-surface-table > .admin-pagination {
+    margin-left: 1.25rem;
+    margin-right: 1.25rem;
+}
+
+.admin-surface-table > .admin-table-note {
+    padding-top: 1rem;
+}
+
+.admin-surface-table > .admin-pagination {
+    padding-bottom: 1.25rem;
+}
+
 .admin-stat-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -741,7 +781,7 @@ html {
 }
 
 .admin-table-head {
-    padding: 0.75rem 1rem;
+    padding: 0.625rem 0.875rem;
     font-size: 0.75rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -751,7 +791,7 @@ html {
 }
 
 .admin-table-cell {
-    padding: 0.75rem 1rem;
+    padding: 0.625rem 0.875rem;
     border-top: 1px solid #e2e8f0;
     vertical-align: middle;
     color: #475569;

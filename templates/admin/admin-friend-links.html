@@ -13,9 +13,9 @@
                 </div>
                 <a href="/admin/friend-links/add" class="admin-btn-primary">添加友链</a>
             </section>
-            <section class="admin-surface overflow-hidden">
+            <section class="admin-surface admin-surface-table overflow-hidden">
                 {{ template "admin-flash" . }}
-                <p class="text-sm text-gray-500 mb-4">启用的友链将按排序显示在首页站点卡片下方；停用或删除后立即从首页消失。</p>
+                <p class="text-sm text-gray-500 mb-4 admin-table-note">启用的友链将按排序显示在首页站点卡片下方；停用或删除后立即从首页消失。</p>
                 <div class="overflow-x-auto">
                     <table class="admin-table min-w-full">
                         <thead><tr><th class="admin-table-head text-left">站点</th><th class="admin-table-head text-left">状态</th><th class="admin-table-head text-left">排序</th><th class="admin-table-head text-left">操作</th></tr></thead>
