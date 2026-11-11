@@ -200,6 +200,11 @@ func (h *AdminHandler) AdminAddSiteForm(c *gin.Context) {
 	categories, _ := h.categoryService.ListAll()
 	common := getCommonAdminData(c, "sites", "添加站点", "创建新的站点条目并设置分类、标签和推荐状态。")
 	common["categories"] = categories
+	common["formTitle"] = "添加站点"
+	common["formAction"] = "/admin/sites/add"
+	common["cancelURL"] = "/admin/sites"
+	common["formWidth"] = "max-w-3xl"
+	common["formType"] = "site"
 	c.HTML(http.StatusOK, "admin-add-site.html", common)
 }
 
@@ -233,6 +238,11 @@ func (h *AdminHandler) AdminAddSite(c *gin.Context) {
 		common["site"] = site
 		common["tagsString"] = tagsStr
 		common["categories"] = categories
+		common["formTitle"] = "添加站点"
+		common["formAction"] = "/admin/sites/add"
+		common["cancelURL"] = "/admin/sites"
+		common["formWidth"] = "max-w-3xl"
+		common["formType"] = "site"
 		c.HTML(http.StatusOK, "admin-add-site.html", common)
 		return
 	}
@@ -262,6 +272,11 @@ func (h *AdminHandler) AdminEditSiteForm(c *gin.Context) {
 	common["site"] = site
 	common["tagsString"] = strings.Join(site.Tags, ", ")
 	common["categories"] = categories
+	common["formTitle"] = "编辑站点"
+	common["formAction"] = "/admin/sites/edit/" + strconv.FormatInt(id, 10)
+	common["cancelURL"] = "/admin/sites"
+	common["formWidth"] = "max-w-3xl"
+	common["formType"] = "site"
 	c.HTML(http.StatusOK, "admin-edit-site.html", common)
 }
 
@@ -304,6 +319,11 @@ func (h *AdminHandler) AdminEditSite(c *gin.Context) {
 		common["site"] = site
 		common["tagsString"] = tagsStr
 		common["categories"] = categories
+		common["formTitle"] = "编辑站点"
+		common["formAction"] = "/admin/sites/edit/" + strconv.FormatInt(site.ID, 10)
+		common["cancelURL"] = "/admin/sites"
+		common["formWidth"] = "max-w-3xl"
+		common["formType"] = "site"
 		c.HTML(http.StatusOK, "admin-edit-site.html", common)
 		return
 	}
@@ -345,6 +365,9 @@ func (h *AdminHandler) navFormData(c *gin.Context, title, action string, item *m
 	common["item"] = item
 	common["formAction"] = action
 	common["formTitle"] = title
+	common["cancelURL"] = "/admin/nav"
+	common["formWidth"] = "max-w-2xl"
+	common["formType"] = "nav"
 
 	options := make([]gin.H, 0, len(services.IconKeys))
 	labels := map[string]string{

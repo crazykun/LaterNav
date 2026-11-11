@@ -28,11 +28,24 @@ func TestAdminSiteFormsRenderLogoUpload(t *testing.T) {
 		name string
 		data map[string]any
 	}{
-		{"admin-add-site.html", map[string]any{"username": "admin", "adminSection": "sites"}},
+		{"admin-add-site.html", map[string]any{
+			"username":     "admin",
+			"adminSection": "sites",
+			"formTitle":    "添加站点",
+			"formAction":   "/admin/sites/add",
+			"cancelURL":    "/admin/sites",
+			"formWidth":    "max-w-3xl",
+			"formType":     "site",
+		}},
 		{"admin-edit-site.html", map[string]any{
 			"username":     "admin",
 			"adminSection": "sites",
 			"site":         map[string]any{"ID": 1, "Logo": "/static/img/nav-test.png"},
+			"formTitle":    "编辑站点",
+			"formAction":   "/admin/sites/edit/1",
+			"cancelURL":    "/admin/sites",
+			"formWidth":    "max-w-3xl",
+			"formType":     "site",
 		}},
 	}
 

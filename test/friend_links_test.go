@@ -47,8 +47,8 @@ func TestIndexTemplateRendersFriendLinks(t *testing.T) {
 	if !strings.Contains(html, `style="background-color: #10b981"`) || !strings.Contains(html, ">开</span>") {
 		t.Fatalf("colored initials avatar missing: %s", html)
 	}
-	if !strings.Contains(html, `aria-labelledby="friend-links-title"`) || !strings.Contains(html, "2 个站点") {
-		t.Fatalf("friend links header/count missing: %s", html)
+	if !strings.Contains(html, `aria-labelledby="friend-links-title"`) || !strings.Contains(html, "合作伙伴") {
+		t.Fatalf("friend links header/badge missing: %s", html)
 	}
 }
 

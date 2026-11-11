@@ -11,6 +11,7 @@ import (
 	"ai-later-nav/internal/models"
 	"ai-later-nav/internal/services"
 	"ai-later-nav/internal/utils"
+	"crypto/md5"
 	"github.com/gin-gonic/gin"
 )
 
@@ -108,7 +109,7 @@ func (h *PageHandler) HomePage(c *gin.Context) {
 		friendLinks = nil
 	}
 	for i := range friendLinks {
-		friendLinks[i].Color = utils.GenerateColorFromName(friendLinks[i].Name)
+		friendLinks[i].Color = friendLinkColor(friendLinks[i].Name)
 		friendLinks[i].Initials = utils.GetInitialsFromName(friendLinks[i].Name)
 	}
 	copyright, _ := c.Get("Copyright")
@@ -125,6 +126,13 @@ func (h *PageHandler) HomePage(c *gin.Context) {
 			"error": "页面渲染失败",
 		})
 	}
+}
+
+// friendLinkColor 友链头像配色，限制在 5 种预设色中，避免整排过于花哨。
+func friendLinkColor(name string) string {
+	palette := []string{"#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899"}
+	hash := md5.Sum([]byte(name))
+	return palette[int(hash[0])%len(palette)]
 }
 
 func (h *PageHandler) SearchPage(c *gin.Context) {

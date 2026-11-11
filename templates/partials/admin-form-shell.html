@@ -1,0 +1,31 @@
+{{ define "admin-form-shell" }}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <title>{{ .formTitle }} - {{ .SiteName }}</title>
+    {{ template "admin-head" . }}
+</head>
+<body class="admin-body">
+    <div class="admin-shell">
+        {{ template "admin-sidebar" . }}
+        <div class="admin-main">
+            {{ template "admin-topbar" . }}
+            <main class="admin-content">
+                <section class="admin-surface admin-form-surface {{ .formWidth }}">
+                    {{ template "admin-flash" . }}
+                    <form action="{{ .formAction }}" method="POST" class="admin-form-grid">
+                        {{ if .csrfToken }}<input type="hidden" name="csrf_token" value="{{ .csrfToken }}">{{ end }}
+                        {{ if eq .formType "site" }}{{ template "site-form-content" . }}{{ end }}
+                        {{ if eq .formType "nav" }}{{ template "nav-form-content" . }}{{ end }}
+                        <div class="admin-form-actions">
+                            <a href="{{ .cancelURL }}" class="admin-btn-secondary">取消</a>
+                            <button type="submit" class="admin-btn-primary">保存</button>
+                        </div>
+                    </form>
+                </section>
+            </main>
+        </div>
+    </div>
+</body>
+</html>
+{{ end }}

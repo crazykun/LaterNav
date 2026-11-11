@@ -272,14 +272,15 @@ func TestIndexTemplateRendersDisplayTagClasses(t *testing.T) {
 	}
 
 	html := out.String()
-	if !strings.Contains(html, "bg-emerald-50 text-emerald-700 border border-emerald-200") {
-		t.Fatalf("index.html did not render display tag class: %s", html)
+	// 首页标签已统一为浅色描边样式，不再使用多色 DisplayTag.Class。
+	if !strings.Contains(html, "border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300") {
+		t.Fatalf("index.html did not render unified tag style: %s", html)
+	}
+	if strings.Contains(html, "bg-emerald-50 text-emerald-700 border border-emerald-200") {
+		t.Fatalf("index.html still rendered colored tag class: %s", html)
 	}
 	if strings.Contains(html, "class=\"tag-badge ") {
 		t.Fatalf("index.html still rendered tag-badge class that overrides stable colors: %s", html)
-	}
-	if strings.Contains(html, "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800") {
-		t.Fatalf("index.html still rendered hard-coded blue tag class: %s", html)
 	}
 }
 

@@ -1,58 +1,36 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <title>添加站点 - {{ .SiteName }}</title>
-    {{ template "admin-head" . }}
-</head>
-<body class="admin-body">
-    <div class="admin-shell">
-        {{ template "admin-sidebar" . }}
-        <div class="admin-main">
-            {{ template "admin-topbar" . }}
-            <main class="admin-content">
-                <section class="admin-surface admin-form-surface max-w-3xl">
-                    {{ template "admin-flash" . }}
-                    <form action="/admin/sites/add" method="POST" class="admin-form-grid">
-                        <div>
-                            <label for="name" class="admin-label">站点名称</label>
-                            <input type="text" id="name" name="Name" class="admin-input" required>
-                        </div>
-                        <div>
-                            <label for="url" class="admin-label">站点URL</label>
-                            <input type="url" id="url" name="URL" class="admin-input" required>
-                        </div>
-                        <div>
-                            <label for="description" class="admin-label">站点描述</label>
-                            <textarea id="description" name="Description" rows="3" class="admin-textarea" required></textarea>
-                        </div>
-                        {{ template "admin-logo-field" . }}
-                        <div>
-                            <label for="category" class="admin-label">主分类</label>
-                            <select id="category" name="Category" class="admin-input">
-                                <option value="">未分类</option>
-                                {{ range .categories }}<option value="{{ .Name }}" {{ if and $.site (eq $.site.Category .Name) }}selected{{ end }}>{{ .Name }}</option>{{ end }}
-                            </select>
-                        </div>
-                        <div>
-                            <label for="tags" class="admin-label">标签（用逗号分隔）</label>
-                            <input type="text" id="tags" name="Tags" class="admin-input" placeholder="AI对话, 语言模型, 智能助手">
-                        </div>
-                        <div>
-                            <label for="rating" class="admin-label">评分（1-5）</label>
-                            <input type="number" id="rating" name="Rating" min="0" max="5" step="0.1" class="admin-input" placeholder="0.0">
-                        </div>
-                        <div class="admin-checkbox-row">
-                            <input type="checkbox" id="featured" name="Featured" class="admin-checkbox">
-                            <label for="featured" class="admin-checkbox-label">设为推荐站点</label>
-                        </div>
-                        <div class="admin-form-actions">
-                            <a href="/admin/sites" class="admin-btn-secondary">取消</a>
-                            <button type="submit" class="admin-btn-primary">保存</button>
-                        </div>
-                    </form>
-                </section>
-            </main>
-        </div>
-    </div>
-</body>
-</html>
+{{ template "admin-form-shell" . }}
+
+{{ define "site-form-content" }}
+<div>
+    <label for="name" class="admin-label">站点名称</label>
+    <input type="text" id="name" name="Name" value="{{ with .site }}{{ .Name }}{{ end }}" class="admin-input" required>
+</div>
+<div>
+    <label for="url" class="admin-label">站点URL</label>
+    <input type="url" id="url" name="URL" value="{{ with .site }}{{ .URL }}{{ end }}" class="admin-input" required>
+</div>
+<div>
+    <label for="description" class="admin-label">站点描述</label>
+    <textarea id="description" name="Description" rows="3" class="admin-textarea" required>{{ with .site }}{{ .Description }}{{ end }}</textarea>
+</div>
+{{ template "admin-logo-field" . }}
+<div>
+    <label for="category" class="admin-label">主分类</label>
+    <select id="category" name="Category" class="admin-input">
+        <option value="">未分类</option>
+        {{ range .categories }}<option value="{{ .Name }}" {{ if and $.site (eq $.site.Category .Name) }}selected{{ end }}>{{ .Name }}</option>{{ end }}
+    </select>
+</div>
+<div>
+    <label for="tags" class="admin-label">标签（用逗号分隔）</label>
+    <input type="text" id="tags" name="Tags" value="{{ .tagsString }}" class="admin-input" placeholder="AI对话, 语言模型, 智能助手">
+</div>
+<div>
+    <label for="rating" class="admin-label">评分（1-5）</label>
+    <input type="number" id="rating" name="Rating" min="0" max="5" step="0.1" value="{{ with .site }}{{ .Rating }}{{ end }}" class="admin-input" placeholder="0.0">
+</div>
+<div class="admin-checkbox-row">
+    <input type="checkbox" id="featured" name="Featured" {{ with .site }}{{ if .Featured }}checked{{ end }}{{ end }} class="admin-checkbox">
+    <label for="featured" class="admin-checkbox-label">设为推荐站点</label>
+</div>
+{{ end }}

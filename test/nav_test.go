@@ -105,6 +105,9 @@ func TestAdminNavTemplatesRender(t *testing.T) {
 		"adminSection": "nav",
 		"formTitle":    "编辑导航",
 		"formAction":   "/admin/nav/edit/1",
+		"cancelURL":    "/admin/nav",
+		"formWidth":    "max-w-2xl",
+		"formType":     "nav",
 		"item":         models.NavItem{ID: 1, Name: "对话", URL: "/search?category=AI对话", Description: "AI 对话类工具", Icon: "chat", SortOrder: 2, Enabled: false},
 		"iconOptions": []map[string]any{
 			{"Value": "grid", "Label": "网格（grid）"},

@@ -4,19 +4,19 @@
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
     <div class="container mx-auto px-4 py-6">
         <div class="xl:flex xl:gap-8">
-            <!-- 左侧分类导航 (PC端)：与卡片网格同行，贴着内容左边缘，顶部与网格对齐 -->
+            <!-- 左侧分类导航 (PC端)：去卡片化，更像导航而非内容卡片 -->
             <aside class="hidden xl:block w-44 shrink-0 mt-16">
-                <div class="sticky top-20 bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 transition-colors duration-200">
-            <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 mb-3 text-center uppercase tracking-wider">分类</h3>
+                <div class="sticky top-20 border-r border-gray-200 dark:border-gray-700 pr-4">
+            <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 mb-3 px-3 uppercase tracking-wider">分类</h3>
             <nav class="flex flex-col gap-1">
-                <a href="/" class="px-3 py-2.5 text-sm rounded-xl font-medium transition-all duration-200 text-center flex items-center justify-center gap-2 {{ if not .selectedCategory }}bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400{{ else }}text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700{{ end }}">
+                <a href="/" class="px-3 py-2.5 text-sm rounded-xl font-medium transition-all duration-200 flex items-center gap-2 {{ if not .selectedCategory }}bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400{{ else }}text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700{{ end }}">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
                     </svg>
                     全部
                 </a>
                 {{ range .categories }}
-                <a href="{{ categoryURL .Name }}" class="px-3 py-2.5 text-sm rounded-xl font-medium transition-all duration-200 text-center flex items-center justify-center gap-2 {{ if eq $.selectedCategory .Name }}bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400{{ else }}text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700{{ end }}">
+                <a href="{{ categoryURL .Name }}" class="px-3 py-2.5 text-sm rounded-xl font-medium transition-all duration-200 flex items-center gap-2 {{ if eq $.selectedCategory .Name }}bg-blue-50 dark:bg-gray-700 text-blue-600 dark:text-blue-400{{ else }}text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700{{ end }}">
                     {{ template "nav-icon" (categoryIconData .Name .Icon) }}
                     {{ .Name }}
                 </a>
@@ -85,7 +85,7 @@
                     <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-100 dark:border-gray-700 relative z-10">
                         <div class="flex flex-wrap gap-1.5 flex-1 mr-2">
                             {{ range .DisplayTags }}
-                            <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ .Class }}">
+                            <span class="px-2 py-0.5 rounded-full text-xs font-medium border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                                 {{ .Name }}
                             </span>
                             {{ end }}
@@ -113,7 +113,7 @@
                             <!-- 访问按钮 -->
                             <a href="{{ .URL }}" target="_blank" rel="noopener noreferrer"
                                onclick="recordVisitAndGo({{ .ID }}, '{{ .URL }}', event)"
-                               class="p-1.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 hover:scale-110 hover:shadow-lg transition-all duration-200"
+                               class="p-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 hover:shadow-md transition-all duration-200"
                                title="访问网站">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
