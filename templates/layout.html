@@ -14,6 +14,12 @@ x-init="$watch('dark', v => localStorage.setItem('dark', v))">
     <meta name="description" content="AI工具导航是一个致力于提供优质AI工具的网站，帮助你快速找到适合自己的AI工具。"/>
     <link rel="icon" href="/static/img/ico.png" type="image/x-icon">
     <script src="/static/css/tailwind-3.4.17.css"></script>
+    <script>
+        // 让 Tailwind 的 dark: 类跟随 .dark 类，而不是系统主题
+        tailwind.config = {
+            darkMode: 'class',
+        };
+    </script>
     <link rel="stylesheet" href="/static/css/style.css?v=20261111-cleanup">
     <script src="/static/js/htmx.min.js"></script>
     <script defer src="/static/js/alpine.min.js"></script>
