@@ -80,7 +80,8 @@ func taxonomyError(err error) string {
 	}
 }
 
-// categoryIconOptions 与导航管理共用图标集，首位"自动"表示按分类名匹配。
+// categoryIconOptions 与导航管理共用图标集；"自动匹配"由选择器 partial 自行渲染，
+// 这里不能包含空值项，否则会出现重复的自动按钮。
 func categoryIconOptions() []gin.H {
 	labels := map[string]string{
 		"grid":   "网格",
@@ -91,8 +92,7 @@ func categoryIconOptions() []gin.H {
 		"star":   "星标",
 		"link":   "链接",
 	}
-	options := make([]gin.H, 0, len(services.IconKeys)+1)
-	options = append(options, gin.H{"Value": "", "Label": "自动匹配"})
+	options := make([]gin.H, 0, len(services.IconKeys))
 	for _, k := range services.IconKeys {
 		options = append(options, gin.H{"Value": k, "Label": labels[k] + "（" + k + "）"})
 	}
