@@ -35,3 +35,6 @@ ai-later-nav.log
 
 # Uploaded images
 uploads/
+
+# ZCode session data (plans, drafts)
+.zcode/
