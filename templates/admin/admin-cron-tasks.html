@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><title>定时任务 - {{ .SiteName }}</title>{{ template "admin-head" . }}</head>
+<body class="admin-body">
+<div class="admin-shell">
+  {{ template "admin-sidebar" . }}
+  <div class="admin-main">
+    {{ template "admin-topbar" . }}
+    <main class="admin-content">
+      {{ template "admin-flash" . }}
+      {{ range .tasks }}
+      <section class="admin-surface admin-form-surface max-w-3xl" aria-label="{{ .Name }}">
+        <h2 class="text-lg font-semibold text-gray-900">{{ .Name }}</h2>
+        <p class="mt-2 text-sm text-gray-600">任务标识：{{ .Key }} · 上次运行：{{ if .LastRunAt }}{{ .LastRunAt.Format "2006-01-02 15:04" }}{{ else }}尚未运行{{ end }}{{ if .LastError }} · 最近错误：{{ .LastError }}{{ end }}</p>
+        <p class="mt-2 text-sm text-gray-600">说明：每天按 UTC 时间执行；失败重试 5 次，所有尝试失败时保留旧榜单。</p>
+        <form action="/admin/cron-tasks/{{ .Key }}" method="POST" class="admin-form-grid mt-5">
+          <input type="hidden" name="csrf_token" value="{{ $.csrfToken }}">
+          <div>
+            <label for="cron_spec_{{ .Key }}" class="admin-label">执行时间（UTC，5 段 cron）</label>
+            <input id="cron_spec_{{ .Key }}" name="cron_spec" type="text" required maxlength="100" pattern="[0-9]{1,2} [0-9]{1,2} [*] [*] [*]" class="admin-input" value="{{ .Spec }}" aria-describedby="cron_help_{{ .Key }}">
+            <p id="cron_help_{{ .Key }}" class="text-sm text-gray-600 mt-1">例如：<code>0 3 * * *</code> 表示每天 UTC 03:00。{{ with index $.nextRuns .Key }}下次执行：{{ . }}{{ end }}</p>
+          </div>
+          <div><label class="admin-label" for="enabled_{{ .Key }}"><input id="enabled_{{ .Key }}" type="checkbox" name="enabled" value="1" {{ if .Enabled }}checked{{ end }}> 启用任务</label></div>
+          <div class="admin-form-actions"><button type="submit" class="admin-btn-primary">保存定时任务</button></div>
+        </form>
+        <form action="/admin/cron-tasks/{{ .Key }}/run" method="POST" class="mt-4" onsubmit="return confirm('立即同步排行榜？失败时将自动重试 5 次。')">
+          <input type="hidden" name="csrf_token" value="{{ $.csrfToken }}">
+          <button type="submit" class="admin-btn-primary cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-500">立即执行（手动补偿）</button>
+          <p class="mt-2 text-sm text-gray-600">无需启用定时任务；后台异步执行，请稍后刷新查看上次运行及错误。不修改计划配置。</p>
+        </form>
+      </section>
+      {{ else }}<p class="text-gray-600">尚无定时任务。</p>{{ end }}
+    </main>
+  </div>
+</div>
+</body>
+</html>
