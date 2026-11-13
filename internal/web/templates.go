@@ -106,15 +106,16 @@ var funcMap = template.FuncMap{
 
 func BuildPageTemplates(root fs.FS) map[string]*template.Template {
 	return map[string]*template.Template{
-		"index.html":     template.Must(template.New("index.html").Funcs(funcMap).ParseFS(root, "layout.html", "index.html", "partials/*.html")),
-		"login.html":     template.Must(template.New("login.html").Funcs(funcMap).ParseFS(root, "layout.html", "login.html", "partials/*.html")),
-		"register.html":  template.Must(template.New("register.html").Funcs(funcMap).ParseFS(root, "layout.html", "register.html", "partials/*.html")),
-		"dashboard.html": template.Must(template.New("dashboard.html").Funcs(funcMap).ParseFS(root, "layout.html", "dashboard.html", "partials/*.html")),
-		"submit.html":    template.Must(template.New("submit.html").Funcs(funcMap).ParseFS(root, "layout.html", "submit.html", "partials/*.html")),
-		"setup.html":     template.Must(template.New("setup.html").Funcs(funcMap).ParseFS(root, "layout.html", "setup.html", "partials/*.html")),
+		"index.html":       template.Must(template.New("index.html").Funcs(funcMap).ParseFS(root, "layout.html", "index.html", "partials/*.html")),
+		"leaderboard.html": template.Must(template.New("leaderboard.html").Funcs(funcMap).ParseFS(root, "layout.html", "leaderboard.html", "partials/*.html")),
+		"login.html":       template.Must(template.New("login.html").Funcs(funcMap).ParseFS(root, "layout.html", "login.html", "partials/*.html")),
+		"register.html":    template.Must(template.New("register.html").Funcs(funcMap).ParseFS(root, "layout.html", "register.html", "partials/*.html")),
+		"dashboard.html":   template.Must(template.New("dashboard.html").Funcs(funcMap).ParseFS(root, "layout.html", "dashboard.html", "partials/*.html")),
+		"submit.html":      template.Must(template.New("submit.html").Funcs(funcMap).ParseFS(root, "layout.html", "submit.html", "partials/*.html")),
+		"setup.html":       template.Must(template.New("setup.html").Funcs(funcMap).ParseFS(root, "layout.html", "setup.html", "partials/*.html")),
 	}
 }
 
 func BuildSharedTemplates(root fs.FS) *template.Template {
-	return template.Must(template.New("shared.html").Funcs(funcMap).ParseFS(root, "error.html", "admin/admin-index.html", "admin/admin-sites.html", "admin/admin-add-site.html", "admin/admin-edit-site.html", "admin/admin-nav.html", "admin/admin-nav-form.html", "admin/admin-users.html", "admin/admin-settings.html", "admin/admin-providers.html", "admin/admin-provider-edit.html", "admin/admin-stats.html", "admin/admin-submissions.html", "admin/admin-categories.html", "admin/admin-tags.html", "admin/admin-friend-links.html", "admin/admin-friend-link-form.html", "partials/*.html"))
+	return template.Must(template.New("shared.html").Funcs(funcMap).ParseFS(root, "error.html", "admin/admin-index.html", "admin/admin-sites.html", "admin/admin-add-site.html", "admin/admin-edit-site.html", "admin/admin-nav.html", "admin/admin-nav-form.html", "admin/admin-users.html", "admin/admin-settings.html", "admin/admin-providers.html", "admin/admin-provider-edit.html", "admin/admin-stats.html", "admin/admin-submissions.html", "admin/admin-categories.html", "admin/admin-tags.html", "admin/admin-friend-links.html", "admin/admin-friend-link-form.html", "admin/admin-cron-tasks.html", "partials/*.html"))
 }

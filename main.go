@@ -3,6 +3,7 @@ package main
 import (
 	"ai-later-nav/internal/config"
 	"ai-later-nav/internal/database"
+	"ai-later-nav/internal/database/repository"
 	"ai-later-nav/internal/handlers"
 	"ai-later-nav/internal/middleware"
 	"ai-later-nav/internal/services"
@@ -12,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -58,6 +60,14 @@ func main() {
 		log.Printf("Warning: could not migrate legacy OIDC settings: %v", err)
 	}
 
+	leaderboardRepo := repository.NewLeaderboardRepository(database.DB)
+	cronRepo := repository.NewCronTaskRepository(database.DB)
+	leaderboardTasks := services.NewLeaderboardTasks(leaderboardRepo, cronRepo, &http.Client{Timeout: 20 * time.Second}, services.BenchLMLeaderboardURL)
+	if err := leaderboardTasks.Start(); err != nil {
+		log.Fatalf("Failed to start leaderboard tasks: %v", err)
+	}
+	defer leaderboardTasks.Stop()
+
 	r := gin.New()
 	// Authorization codes and state must not be written to Gin's request log.
 	r.Use(gin.LoggerWithConfig(gin.LoggerConfig{SkipPaths: []string{"/oauth/callback"}}), gin.Recovery())
@@ -78,8 +88,10 @@ func main() {
 	r.Use(middleware.AccessLog())
 
 	pageHandler := handlers.NewPageHandler(pageTemplates)
+	leaderboardHandler := handlers.NewLeaderboardPageHandler(pageHandler, leaderboardRepo)
 	apiHandler := handlers.NewAPIHandler()
 	adminHandler := handlers.NewAdminHandler()
+	cronHandler := handlers.NewAdminCronTaskHandler(cronRepo, leaderboardTasks.Scheduler)
 	oauthRegistry := handlers.NewOAuthRegistry(services.GetOAuthProviderService())
 	// Legacy single-provider URLs keep working for the already-registered
 	// Linux.sb callback; new providers use /oauth/<slug>/*.
@@ -101,6 +113,7 @@ func main() {
 
 	r.GET("/", pageHandler.HomePage)
 	r.GET("/search", pageHandler.SearchPage)
+	r.GET("/leaderboard", leaderboardHandler.LeaderboardPage)
 
 	r.GET("/login", pageHandler.LoginPage)
 	r.GET("/register", pageHandler.RegisterPage)
@@ -175,6 +188,9 @@ func main() {
 		admin.GET("/stats", adminHandler.AdminStats)
 		admin.GET("/settings", adminHandler.AdminSettingsForm)
 		admin.POST("/settings", adminHandler.AdminSettingsSave)
+		admin.GET("/cron-tasks", cronHandler.List)
+		admin.POST("/cron-tasks/:key", cronHandler.Update)
+		admin.POST("/cron-tasks/:key/run", cronHandler.RunManual)
 		admin.GET("/oidc", adminHandler.AdminProviderList)
 		admin.GET("/oidc/new", adminHandler.AdminProviderNew)
 		admin.POST("/oidc/new", adminHandler.AdminProviderSave)

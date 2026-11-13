@@ -22,6 +22,7 @@ type PageHandler struct {
 	categoryService   *services.CategoryService
 	friendLinkService *services.FriendLinkService
 	pageTemplates     map[string]*template.Template
+	loginProviders    func() ([]*models.OAuthProvider, error)
 }
 
 func NewPageHandler(pageTemplates map[string]*template.Template) *PageHandler {
@@ -32,6 +33,7 @@ func NewPageHandler(pageTemplates map[string]*template.Template) *PageHandler {
 		categoryService:   services.NewCategoryService(),
 		friendLinkService: services.NewFriendLinkService(),
 		pageTemplates:     pageTemplates,
+		loginProviders:    services.GetOAuthProviderService().LoginProviders,
 	}
 }
 
@@ -44,8 +46,10 @@ func (h *PageHandler) renderPage(c *gin.Context, name string, data gin.H) error 
 	if data == nil {
 		data = gin.H{}
 	}
-	if providers, err := services.GetOAuthProviderService().LoginProviders(); err == nil {
-		data["oauthProviders"] = providers
+	if h.loginProviders != nil {
+		if providers, err := h.loginProviders(); err == nil {
+			data["oauthProviders"] = providers
+		}
 	}
 	if v, exists := c.Get("Copyright"); exists {
 		data["Copyright"] = v
@@ -66,8 +70,10 @@ func (h *PageHandler) renderPage(c *gin.Context, name string, data gin.H) error 
 		data["role"] = v
 	}
 	if _, exists := data["navItems"]; !exists {
-		if navItems, err := h.navService.ListEnabled(); err == nil {
-			data["navItems"] = navItems
+		if h.navService != nil {
+			if navItems, err := h.navService.ListEnabled(); err == nil {
+				data["navItems"] = navItems
+			}
 		}
 	}
 
