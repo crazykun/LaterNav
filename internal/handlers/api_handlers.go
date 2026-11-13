@@ -268,7 +268,7 @@ func (h *APIHandler) SetInitialCredentials(c *gin.Context) {
 		c.HTML(http.StatusOK, "partials/password-form.html", csrf)
 		return
 	}
-	c.HTML(http.StatusOK, "partials/password-form.html", gin.H{"success": "本站登录凭据设置成功"})
+	c.HTML(http.StatusOK, "partials/password-form.html", gin.H{"csrfToken": profileCSRF(c), "success": "本站登录凭据设置成功"})
 }
 func (h *APIHandler) ChangePassword(c *gin.Context) {
 	if !validUserCSRF(c) {
@@ -319,7 +319,8 @@ func (h *APIHandler) ChangePassword(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "partials/password-form.html", gin.H{
-		"success": "密码修改成功",
+		"csrfToken": profileCSRF(c),
+		"success":   "密码修改成功",
 	})
 }
 

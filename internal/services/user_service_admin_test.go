@@ -301,11 +301,12 @@ func singleUserRows(user *models.User) driver.Rows {
 	now := time.Unix(0, 0)
 
 	return &adminUserServiceStubRows{
-		columns: []string{"id", "username", "nickname", "email", "password_hash", "role", "status", "created_at", "updated_at"},
+		columns: []string{"id", "username", "nickname", "avatar_url", "email", "password_hash", "role", "status", "created_at", "updated_at"},
 		values: [][]driver.Value{{
 			user.ID,
 			user.Username,
 			user.Nickname,
+			user.AvatarURL,
 			user.Email,
 			user.PasswordHash,
 			user.Role,

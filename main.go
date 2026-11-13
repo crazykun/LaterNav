@@ -138,11 +138,13 @@ func main() {
 	auth.Use(middleware.AuthMiddleware())
 	{
 		auth.GET("/dashboard", pageHandler.UserDashboard)
+		auth.GET("/account/profile", bindingHandler.AccountProfilePage)
 		auth.GET("/account/bindings", bindingHandler.AccountBindingsPage)
 		auth.POST("/api/account/bindings/:slug/start", bindingHandler.StartBind)
 		auth.POST("/api/account/bindings/:slug/unbind", bindingHandler.Unbind)
 		auth.GET("/api/profile", handlers.GetProfile)
 		auth.POST("/api/profile", handlers.UpdateProfile)
+		auth.POST("/api/profile/avatar", handlers.UploadAvatar)
 		auth.POST("/api/auth/set-initial-credentials", apiHandler.SetInitialCredentials)
 		auth.POST("/api/auth/change-password", apiHandler.ChangePassword)
 		auth.POST("/api/favorites/:id", apiHandler.ToggleFavorite)

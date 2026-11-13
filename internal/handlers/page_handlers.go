@@ -66,6 +66,9 @@ func (h *PageHandler) renderPage(c *gin.Context, name string, data gin.H) error 
 	if v, exists := c.Get("displayName"); exists {
 		data["displayName"] = v
 	}
+	if v, exists := c.Get("avatarURL"); exists {
+		data["avatarURL"] = v
+	}
 	if v, exists := c.Get("role"); exists {
 		data["role"] = v
 	}
@@ -218,19 +221,15 @@ func (h *PageHandler) UserDashboard(c *gin.Context) {
 	if len(favoriteIDs) > 0 {
 		favoriteSites, _ = h.siteService.GetByIDs(favoriteIDs)
 	}
-	user, _ := userService.GetByID(userID)
-	initialCredentials := user != nil && user.PasswordHash == "!"
 	mySubmissions, _ := h.submissionService.ListMine(userID, 20)
 	copyright, _ := c.Get("Copyright")
 	if err := h.renderPage(c, "dashboard.html", gin.H{
-		"favoriteIDs":        favoriteIDs,
-		"favoriteSites":      favoriteSites,
-		"mySubmissions":      mySubmissions,
-		"Copyright":          copyright,
-		"isLoggedIn":         true,
-		"username":           c.GetString("username"),
-		"initialCredentials": initialCredentials,
-		"csrfToken":          profileCSRF(c),
+		"favoriteIDs":   favoriteIDs,
+		"favoriteSites": favoriteSites,
+		"mySubmissions": mySubmissions,
+		"Copyright":     copyright,
+		"isLoggedIn":    true,
+		"username":      c.GetString("username"),
 	}); err != nil {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error": "页面渲染失败",

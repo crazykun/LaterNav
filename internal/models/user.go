@@ -6,6 +6,7 @@ type User struct {
 	ID           int64     `json:"id" db:"id"`
 	Username     string    `json:"username" db:"username"`
 	Nickname     string    `json:"nickname" db:"nickname"`
+	AvatarURL    string    `json:"avatar_url" db:"avatar_url"`
 	Email        string    `json:"email" db:"email"`
 	PasswordHash string    `json:"-" db:"password_hash"`
 	Role         string    `json:"role" db:"role"`

@@ -107,22 +107,45 @@ func (h *AccountBindingHandler) viewData(c *gin.Context, success, errMsg string)
 	}, nil
 }
 
-// AccountBindingsPage is the front-end personal-center page.
-func (h *AccountBindingHandler) AccountBindingsPage(c *gin.Context) {
-	data, err := h.viewData(c, "", "")
+// AccountProfilePage combines account settings and linked identities in one page.
+func (h *AccountBindingHandler) AccountProfilePage(c *gin.Context) {
+	user, err := h.users.GetByID(c.GetInt64("user_id"))
 	if err != nil {
-		log.Printf("account bindings page: %v", err)
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"error": "页面加载失败"})
+		log.Printf("account profile user: %v", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+	if user == nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	data, err := h.viewData(c, "", "")
+	if err != nil {
+		log.Printf("account bindings unavailable: %v", err)
+		data = gin.H{"bindingsUnavailable": true, "initialCredentials": user.PasswordHash == "!"}
+	}
+	data["profileCSRFToken"] = profileCSRF(c)
+	data["passwordCSRFToken"] = profileCSRF(c)
+	data["accountUsername"] = user.Username
+	data["nickname"] = user.Nickname
+	data["avatarURL"] = user.AvatarURL
 	if c.Query("bound") == "1" {
 		data["pageNotice"] = "绑定成功，已关联到当前账号。"
 	}
 	data["pageError"] = bindingPageError(c.Query("error"))
-	if err := h.page.renderPage(c, "account-bindings.html", data); err != nil {
-		log.Printf("render account bindings: %v", err)
+	if err := h.page.renderPage(c, "account-profile.html", data); err != nil {
+		log.Printf("render account profile: %v", err)
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"error": "页面渲染失败"})
 	}
+}
+
+// AccountBindingsPage preserves bookmarks and OAuth callbacks via a redirect.
+func (h *AccountBindingHandler) AccountBindingsPage(c *gin.Context) {
+	target := "/account/profile"
+	if c.Request.URL.RawQuery != "" {
+		target += "?" + c.Request.URL.RawQuery
+	}
+	c.Redirect(http.StatusFound, target)
 }
 
 // StartBind is a CSRF-protected POST that launches the OAuth flow with a

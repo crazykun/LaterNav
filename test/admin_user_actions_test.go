@@ -499,7 +499,7 @@ func newAdminUserPageRows(users []*models.User) *adminUserStubRows {
 
 func newAdminUserRows(users []*models.User) *adminUserStubRows {
 	rows := &adminUserStubRows{
-		columns: []string{"id", "username", "nickname", "email", "password_hash", "role", "status", "created_at", "updated_at"},
+		columns: []string{"id", "username", "nickname", "avatar_url", "email", "password_hash", "role", "status", "created_at", "updated_at"},
 	}
 	for _, user := range users {
 		now := time.Date(2026, 4, 29, 12, 0, 0, 0, time.UTC)
@@ -515,6 +515,7 @@ func newAdminUserRows(users []*models.User) *adminUserStubRows {
 			user.ID,
 			user.Username,
 			user.Nickname,
+			user.AvatarURL,
 			user.Email,
 			user.PasswordHash,
 			user.Role,

@@ -133,6 +133,10 @@ func (s *UserService) UpdateProfile(userID int64, username, nickname string) err
 	return nil
 }
 
+func (s *UserService) ReplaceAvatar(userID int64, avatarURL string) (string, error) {
+	return s.userRepo.ReplaceAvatar(userID, avatarURL)
+}
+
 func (s *UserService) SetInitialCredentials(userID int64, password string) error {
 	if len(password) < 6 {
 		return ErrInvalidPassword
