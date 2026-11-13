@@ -84,6 +84,20 @@
         });
     };
 
+    // 返回顶部按钮：滚动超过 300px 后显示
+    const backToTop = document.getElementById('back-to-top');
+    if (backToTop) {
+        const updateBackToTop = function() {
+            if (window.pageYOffset > 300) {
+                backToTop.classList.add('is-visible');
+            } else {
+                backToTop.classList.remove('is-visible');
+            }
+        };
+        window.addEventListener('scroll', updateBackToTop, { passive: true });
+        updateBackToTop();
+    }
+
     // 复制到剪贴板
     window.copyToClipboard = function(text) {
         navigator.clipboard.writeText(text).then(() => {

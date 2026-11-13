@@ -170,6 +170,68 @@ html {
     transition: all 0.3s ease !important;
 }
 
+/* 返回顶部按钮：右下角固定，滚动超过阈值后显示 */
+.back-to-top-btn {
+    position: fixed;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    z-index: 40;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.92);
+    color: #475569;
+    box-shadow: 0 8px 20px -8px rgba(15, 23, 42, 0.35);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(0.5rem);
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.back-to-top-btn.is-visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.back-to-top-btn:hover {
+    background: #3b82f6;
+    color: #fff;
+    border-color: #3b82f6;
+}
+
+.back-to-top-btn:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+.dark .back-to-top-btn {
+    background: rgba(30, 41, 59, 0.92);
+    border-color: #475569;
+    color: #cbd5e1;
+}
+
+.dark .back-to-top-btn:hover {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: #fff;
+}
+
+@media (max-width: 640px) {
+    .back-to-top-btn {
+        right: 1rem;
+        bottom: 1rem;
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+}
+
 /* 卡片右上角光晕：保留，但克制为小面积渐显 */
 .card-decoration {
     position: absolute;
