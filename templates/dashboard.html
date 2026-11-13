@@ -7,6 +7,7 @@
         <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <h1 class="text-lg font-bold text-gray-900 dark:text-white">我的收藏</h1>
+                <a href="/account/profile" class="ml-2 text-sm text-blue-600 dark:text-blue-400 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">账号资料</a>
                 <span class="text-sm text-gray-400">{{ if .favoriteSites }}{{ len .favoriteSites }} 个工具{{ end }}</span>
             </div>
             <div class="flex items-center gap-3">
@@ -14,9 +15,7 @@
                 <!-- 用户下拉菜单 -->
                 <div x-data="{ open: false }" @click.outside="open = false" class="relative">
                     <button @click="open = !open" class="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer">
-                        <div class="w-7 h-7 rounded-md bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold">
-                            {{ .displayName | printf "%.1s" | upper }}
-                        </div>
+                        {{ if .avatarURL }}<img src="{{ .avatarURL }}" alt="" class="w-7 h-7 rounded-full object-cover" loading="lazy" referrerpolicy="no-referrer">{{ else }}<div class="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold">{{ .displayName | printf "%.1s" | upper }}</div>{{ end }}
                         <span class="hidden sm:inline">{{ .displayName }}</span>
                         <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -24,14 +23,7 @@
                     </button>
                     <div x-show="open" x-cloak x-transition
                          class="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
-                        <a href="/account/bindings"
-                           class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">账号绑定</a>
-                        <button @click="open = false; document.getElementById('profile-dialog').showModal(); document.getElementById('profile-dialog').dispatchEvent(new Event('profile-open'))"
-                                class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">修改个人资料</button>
-                        <button @click="open = false; $refs.pwdDialog.showModal()"
-                                class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
-                            修改密码
-                        </button>
+                        <a href="/account/profile" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">账号资料</a>
                         <hr class="my-1 border-gray-100 dark:border-gray-700">
                         <button hx-post="/api/auth/logout"
                                 class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
@@ -53,41 +45,4 @@
         {{ template "partials/my-submissions.html" . }}
     </div>
 </div>
-
-<!-- 修改个人资料 -->
-<dialog id="profile-dialog" x-data="{ username: '', nickname: '', csrf: '', error: '', ready: false }"
-    @profile-open="ready = false; error = ''; fetch('/api/profile', {credentials: 'same-origin', cache: 'no-store'}).then(r => { if (!r.ok) throw new Error(); return r.json() }).then(p => { username = p.username; nickname = p.nickname; csrf = p.csrf_token; ready = true }).catch(() => error = '无法加载个人资料，请重试')"
-    class="rounded-xl shadow-2xl p-0 w-full max-w-md backdrop:bg-black/50 bg-white dark:bg-gray-800">
-    <form method="dialog" class="p-5 space-y-4" @submit.prevent="error=''; fetch('/api/profile', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: new URLSearchParams({username, nickname, csrf_token: csrf})}).then(async r => { if (r.ok || r.redirected) { location.reload(); return } error = await r.text() }).catch(() => error = '保存失败，请重试')">
-        <h3 class="text-base font-medium text-gray-900 dark:text-white">修改个人资料</h3>
-        <p x-show="error" x-text="error" class="text-red-600" role="alert"></p>
-        <label class="block text-sm text-gray-700 dark:text-gray-300">登录名
-            <input type="hidden" name="username" :value="username">
-            <div x-text="username" class="block w-full truncate rounded border border-gray-200 dark:border-gray-600 p-2 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 select-all"></div>
-            <span class="text-xs text-gray-500">登录名仅用于登录，不可修改；页面显示使用下方昵称。</span>
-        </label>
-        <label class="block text-sm text-gray-700 dark:text-gray-300">昵称（可留空）
-            <input name="nickname" x-model="nickname" maxlength="100" class="block w-full rounded border border-gray-300 dark:border-gray-600 p-2 dark:text-white dark:bg-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
-        </label>
-        <div class="flex gap-3"><button type="submit" :disabled="!ready" class="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50">保存</button>
-        <button type="button" @click="$el.closest('dialog').close()" class="px-4 py-2 text-gray-500">取消</button></div>
-    </form>
-</dialog>
-
-
-<dialog x-ref="pwdDialog" class="rounded-xl shadow-2xl p-0 w-full max-w-md backdrop:bg-black/50 bg-white dark:bg-gray-800">
-    <div class="p-5">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-base font-medium text-gray-900 dark:text-white">修改密码</h3>
-            <button onclick="this.closest('dialog').close()" class="text-gray-400 hover:text-gray-600 cursor-pointer">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
-        </div>
-        <div id="password-form">
-            {{ template "partials/password-form.html" . }}
-        </div>
-    </div>
-</dialog>
 {{ end }}

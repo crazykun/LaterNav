@@ -83,6 +83,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		c.Set("user_id", user.ID)
 		c.Set("username", user.Username)
 		c.Set("displayName", displayName(user))
+		c.Set("avatarURL", user.AvatarURL)
 		c.Set("role", user.Role)
 		c.Next()
 	}
@@ -126,6 +127,7 @@ func OptionalAuth() gin.HandlerFunc {
 		c.Set("user_id", user.ID)
 		c.Set("username", user.Username)
 		c.Set("displayName", displayName(user))
+		c.Set("avatarURL", user.AvatarURL)
 		c.Set("role", user.Role)
 		c.Next()
 	}

@@ -31,9 +31,9 @@ func (r *UserRepository) Create(user *models.User) (int64, error) {
 func (r *UserRepository) GetByID(id int64) (*models.User, error) {
 	var u models.User
 	err := r.db.QueryRow(`
-		SELECT id, username, nickname, COALESCE(email, ''), password_hash, role, status, created_at, updated_at
+		SELECT id, username, nickname, avatar_url, COALESCE(email, ''), password_hash, role, status, created_at, updated_at
 		FROM users WHERE id = ?
-	`, id).Scan(&u.ID, &u.Username, &u.Nickname, &u.Email, &u.PasswordHash, &u.Role, &u.Status, &u.CreatedAt, &u.UpdatedAt)
+	`, id).Scan(&u.ID, &u.Username, &u.Nickname, &u.AvatarURL, &u.Email, &u.PasswordHash, &u.Role, &u.Status, &u.CreatedAt, &u.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -46,9 +46,9 @@ func (r *UserRepository) GetByID(id int64) (*models.User, error) {
 func (r *UserRepository) GetByUsername(username string) (*models.User, error) {
 	var u models.User
 	err := r.db.QueryRow(`
-		SELECT id, username, nickname, COALESCE(email, ''), password_hash, role, status, created_at, updated_at
+		SELECT id, username, nickname, avatar_url, COALESCE(email, ''), password_hash, role, status, created_at, updated_at
 		FROM users WHERE username = ?
-	`, username).Scan(&u.ID, &u.Username, &u.Nickname, &u.Email, &u.PasswordHash, &u.Role, &u.Status, &u.CreatedAt, &u.UpdatedAt)
+	`, username).Scan(&u.ID, &u.Username, &u.Nickname, &u.AvatarURL, &u.Email, &u.PasswordHash, &u.Role, &u.Status, &u.CreatedAt, &u.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -64,6 +64,26 @@ func (r *UserRepository) UpdateProfile(userID int64, nickname string) error {
 		return fmt.Errorf("update profile: %w", err)
 	}
 	return nil
+}
+
+// ReplaceAvatar serializes writes to one account and returns the previously stored URL.
+func (r *UserRepository) ReplaceAvatar(userID int64, avatarURL string) (string, error) {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return "", fmt.Errorf("begin avatar update: %w", err)
+	}
+	defer tx.Rollback()
+	var previous string
+	if err := tx.QueryRow("SELECT avatar_url FROM users WHERE id = ? FOR UPDATE", userID).Scan(&previous); err != nil {
+		return "", fmt.Errorf("load previous avatar: %w", err)
+	}
+	if _, err := tx.Exec("UPDATE users SET avatar_url = ?, updated_at = NOW() WHERE id = ?", avatarURL, userID); err != nil {
+		return "", fmt.Errorf("update avatar: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return "", fmt.Errorf("commit avatar update: %w", err)
+	}
+	return previous, nil
 }
 
 func (r *UserRepository) UpdateInitialCredentials(userID int64, passwordHash string) error {
@@ -204,7 +224,7 @@ func (r *UserRepository) CountUsers() (int64, error) {
 
 func (r *UserRepository) GetAllUsers() ([]*models.User, error) {
 	rows, err := r.db.Query(`
-		SELECT id, username, nickname, COALESCE(email, ''), password_hash, role, status, created_at, updated_at
+		SELECT id, username, nickname, avatar_url, COALESCE(email, ''), password_hash, role, status, created_at, updated_at
 		FROM users ORDER BY id DESC
 	`)
 	if err != nil {
@@ -215,7 +235,7 @@ func (r *UserRepository) GetAllUsers() ([]*models.User, error) {
 	var users []*models.User
 	for rows.Next() {
 		var u models.User
-		if err := rows.Scan(&u.ID, &u.Username, &u.Nickname, &u.Email, &u.PasswordHash, &u.Role, &u.Status, &u.CreatedAt, &u.UpdatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.Nickname, &u.AvatarURL, &u.Email, &u.PasswordHash, &u.Role, &u.Status, &u.CreatedAt, &u.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scan user: %w", err)
 		}
 		users = append(users, &u)
@@ -312,7 +332,7 @@ func (r *UserRepository) CountTodayUsers() (int64, error) {
 
 func (r *UserRepository) GetRecentUsers(limit int) ([]*models.User, error) {
 	rows, err := r.db.Query(`
-		SELECT id, username, nickname, COALESCE(email, ''), password_hash, role, status, created_at, updated_at
+		SELECT id, username, nickname, avatar_url, COALESCE(email, ''), password_hash, role, status, created_at, updated_at
 		FROM users ORDER BY created_at DESC LIMIT ?
 	`, limit)
 	if err != nil {
@@ -323,7 +343,7 @@ func (r *UserRepository) GetRecentUsers(limit int) ([]*models.User, error) {
 	var users []*models.User
 	for rows.Next() {
 		var u models.User
-		if err := rows.Scan(&u.ID, &u.Username, &u.Nickname, &u.Email, &u.PasswordHash, &u.Role, &u.Status, &u.CreatedAt, &u.UpdatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.Nickname, &u.AvatarURL, &u.Email, &u.PasswordHash, &u.Role, &u.Status, &u.CreatedAt, &u.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scan user: %w", err)
 		}
 		users = append(users, &u)

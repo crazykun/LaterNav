@@ -9,6 +9,13 @@ import (
 )
 
 var funcMap = template.FuncMap{
+	"dict": func(values ...interface{}) map[string]interface{} {
+		result := make(map[string]interface{}, len(values)/2)
+		for i := 0; i+1 < len(values); i += 2 {
+			result[values[i].(string)] = values[i+1]
+		}
+		return result
+	},
 	"upper":       strings.ToUpper,
 	"lower":       strings.ToLower,
 	"add":         func(a, b int) int { return a + b },
@@ -112,6 +119,7 @@ func BuildPageTemplates(root fs.FS) map[string]*template.Template {
 		"register.html":         template.Must(template.New("register.html").Funcs(funcMap).ParseFS(root, "layout.html", "register.html", "partials/*.html")),
 		"dashboard.html":        template.Must(template.New("dashboard.html").Funcs(funcMap).ParseFS(root, "layout.html", "dashboard.html", "partials/*.html")),
 		"account-bindings.html": template.Must(template.New("account-bindings.html").Funcs(funcMap).ParseFS(root, "layout.html", "account-bindings.html", "partials/*.html")),
+		"account-profile.html":  template.Must(template.New("account-profile.html").Funcs(funcMap).ParseFS(root, "layout.html", "account-profile.html", "partials/*.html")),
 		"submit.html":           template.Must(template.New("submit.html").Funcs(funcMap).ParseFS(root, "layout.html", "submit.html", "partials/*.html")),
 		"setup.html":            template.Must(template.New("setup.html").Funcs(funcMap).ParseFS(root, "layout.html", "setup.html", "partials/*.html")),
 	}

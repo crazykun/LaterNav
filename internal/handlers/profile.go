@@ -44,7 +44,7 @@ func GetProfile(c *gin.Context) {
 		return
 	}
 	c.Header("Cache-Control", "no-store")
-	c.JSON(http.StatusOK, gin.H{"username": user.Username, "nickname": user.Nickname, "csrf_token": profileCSRF(c)})
+	c.JSON(http.StatusOK, gin.H{"username": user.Username, "nickname": user.Nickname, "avatar_url": user.AvatarURL, "csrf_token": profileCSRF(c)})
 }
 
 func UpdateProfile(c *gin.Context) {

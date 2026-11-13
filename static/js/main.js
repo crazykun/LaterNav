@@ -26,13 +26,23 @@
         }, { passive: true });
     }
 
+    // 先初始化全站返回顶部按钮，不依赖卡片动画等可选增强功能。
+    const backToTop = document.getElementById('back-to-top');
+    if (backToTop) {
+        const updateBackToTop = function() {
+            backToTop.classList.toggle('is-visible', (window.scrollY || document.documentElement.scrollTop) > 300);
+        };
+        window.addEventListener('scroll', updateBackToTop, { passive: true });
+        updateBackToTop();
+    }
+
     // 卡片进入视口时的动画
     const observerOptions = {
         threshold: 0.1,
         rootMargin: '0px 0px -50px 0px'
     };
 
-    const observer = new IntersectionObserver((entries) => {
+    const observer = typeof IntersectionObserver === 'function' ? new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 entry.target.classList.add('animate-fade-in');
@@ -43,15 +53,16 @@
                 observer.unobserve(entry.target);
             }
         });
-    }, observerOptions);
+    }, observerOptions) : null;
 
     // 观察所有卡片
-    document.querySelectorAll('.card-hover, .site-card').forEach(card => {
+    if (observer) document.querySelectorAll('.card-hover, .site-card').forEach(card => {
         observer.observe(card);
     });
 
     // HTMX 请求完成后重新观察新卡片
     document.addEventListener('htmx:afterSwap', function(evt) {
+        if (!observer || !evt.detail.target.querySelectorAll) return;
         evt.detail.target.querySelectorAll('.card-hover, .site-card').forEach(card => {
             if (!card.classList.contains('animate-fade-in')) {
                 observer.observe(card);
@@ -83,20 +94,6 @@
             behavior: 'smooth'
         });
     };
-
-    // 返回顶部按钮：滚动超过 300px 后显示
-    const backToTop = document.getElementById('back-to-top');
-    if (backToTop) {
-        const updateBackToTop = function() {
-            if (window.pageYOffset > 300) {
-                backToTop.classList.add('is-visible');
-            } else {
-                backToTop.classList.remove('is-visible');
-            }
-        };
-        window.addEventListener('scroll', updateBackToTop, { passive: true });
-        updateBackToTop();
-    }
 
     // 复制到剪贴板
     window.copyToClipboard = function(text) {

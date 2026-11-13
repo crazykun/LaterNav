@@ -1,0 +1,60 @@
+{{ template "layout.html" . }}
+
+{{ define "content" }}
+<div class="min-h-[80vh] bg-gray-50 dark:bg-gray-900 py-8 sm:py-12 px-4">
+    <div class="max-w-5xl mx-auto">
+        <div class="mb-8">
+            <a href="/dashboard" class="text-sm text-gray-500 dark:text-gray-400 hover:text-blue-500">个人中心</a>
+            <h1 class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">账号资料</h1>
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">头像、昵称、密码和第三方登录方式，都可以在这里管理。</p>
+        </div>
+        {{ if .pageNotice }}<div role="status" class="mb-5 rounded-lg bg-green-50 dark:bg-green-900/20 p-4 text-sm text-green-700 dark:text-green-300">{{ .pageNotice }}</div>{{ end }}
+        {{ if .pageError }}<div role="alert" class="mb-5 rounded-lg bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-700 dark:text-red-300">{{ .pageError }}</div>{{ end }}
+
+        <div class="grid gap-5 lg:grid-cols-2">
+            <div class="space-y-5">
+                <section class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 sm:p-6 shadow-sm">
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">修改头像</h2>
+                    <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">上传 PNG、JPEG 或 GIF，最大 2MB。</p>
+                    <div class="mt-5 flex items-center gap-5" data-avatar="{{ .avatarURL }}" x-data="{avatar: $el.dataset.avatar, busy: false, error: '', success: ''}">
+                        <div class="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-semibold shrink-0">
+                            <img x-show="avatar" :src="avatar" alt="当前头像" class="w-full h-full object-cover" @error="avatar = ''" referrerpolicy="no-referrer">
+                            <span x-show="!avatar">{{ .displayName | printf "%.1s" | upper }}</span>
+                        </div>
+                        <form class="min-w-0 flex-1" @submit.prevent="busy = true; error = ''; success = ''; fetch('/api/profile/avatar', {method: 'POST', credentials: 'same-origin', body: new FormData($el)}).then(async r => { const body = await r.json().catch(() => ({})); if (r.redirected || !r.ok) throw new Error(r.redirected ? '登录已过期，请重新登录' : body.error || '上传失败，请稍后重试'); avatar = body.avatar_url; success = '头像已更新'; $el.reset() }).catch(e => error = e.message).finally(() => busy = false)">
+                            <label for="avatar-upload" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">选择图片</label>
+                            <input id="avatar-upload" type="file" name="avatar" accept="image/png,image/jpeg,image/gif" required class="block w-full text-sm text-gray-700 dark:text-gray-200 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-blue-700 dark:file:bg-gray-700 dark:file:text-blue-300">
+                            <input type="hidden" name="csrf_token" value="{{ .profileCSRFToken }}">
+                            <button type="submit" :disabled="busy" class="mt-3 min-h-11 rounded-lg bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:opacity-50 cursor-pointer">上传头像</button>
+                            <p x-show="error" x-text="error" role="alert" class="mt-2 text-sm text-red-600 dark:text-red-400"></p>
+                            <p x-show="success" x-text="success" role="status" class="mt-2 text-sm text-green-700 dark:text-green-300"></p>
+                        </form>
+                    </div>
+                </section>
+                <section class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 sm:p-6 shadow-sm">
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">修改昵称</h2>
+                    <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">登录名不可修改；昵称将显示在页面上。</p>
+                    <form class="mt-5 space-y-4" data-nickname="{{ .nickname }}" x-data="{nickname: $el.dataset.nickname, busy: false, error: '', success: ''}" @submit.prevent="busy = true; error = ''; success = ''; fetch('/api/profile', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: new URLSearchParams(new FormData($el))}).then(async r => { if (r.redirected || !r.ok) throw new Error(r.redirected ? '登录已过期，请重新登录' : (await r.text()) || '保存失败'); success = '昵称已保存，刷新页面后生效' }).catch(e => error = e.message).finally(() => busy = false)">
+                        <input type="hidden" name="csrf_token" value="{{ .profileCSRFToken }}">
+                        <input type="hidden" name="username" value="{{ .accountUsername }}">
+                        <div><label for="account-username" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">登录名</label><input id="account-username" value="{{ .accountUsername }}" readonly class="h-11 w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 px-3 text-gray-600 dark:text-gray-300"></div>
+                        <div><label for="account-nickname" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">昵称（可留空）</label><input id="account-nickname" name="nickname" x-model="nickname" maxlength="100" class="h-11 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 text-gray-900 dark:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"></div>
+                        <button type="submit" :disabled="busy" class="min-h-11 rounded-lg bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:opacity-50 cursor-pointer">保存昵称</button>
+                        <p x-show="error" x-text="error" role="alert" class="text-sm text-red-600 dark:text-red-400"></p><p x-show="success" x-text="success" role="status" class="text-sm text-green-700 dark:text-green-300"></p>
+                    </form>
+                </section>
+                <section id="security" class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 sm:p-6 shadow-sm">
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">修改密码</h2>
+                    <p class="mt-1 mb-5 text-sm text-gray-600 dark:text-gray-300">{{ if .initialCredentials }}首次设置本站密码后，才可解除最后一个第三方登录方式。{{ else }}修改密码需要验证当前密码。{{ end }}</p>
+                    <div id="password-form">{{ template "partials/password-form.html" (dict "initialCredentials" .initialCredentials "csrfToken" .passwordCSRFToken) }}</div>
+                </section>
+            </div>
+            <section id="bindings" class="min-w-0" aria-label="第三方账号">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">第三方账号</h2>
+                <p class="mb-4 text-sm text-gray-600 dark:text-gray-300">绑定后可以直接登录本站。每个平台只能绑定一个账号；解绑前请确保还有其他登录方式。</p>
+                <div id="account-bindings-list">{{ if .bindingsUnavailable }}<div role="status" class="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4 text-sm text-amber-800 dark:text-amber-200">第三方账号暂时无法加载，请稍后重试。其他资料仍可正常管理。</div>{{ else }}{{ template "partials/account-bindings-list.html" . }}{{ end }}</div>
+            </section>
+        </div>
+    </div>
+</div>
+{{ end }}
