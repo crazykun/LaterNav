@@ -92,20 +92,22 @@ func providerFromForm(form url.Values, old *models.OAuthProvider) (*models.OAuth
 			p.ClientSecret = old.ClientSecret
 		}
 	}
+	// 校验失败时返回已构造的对象而非 nil，模板需要它回填用户输入；
+	// 传 nil 会让模板访问 .provider.* 时 panic，表现为 500。
 	if !services.ValidSlug(p.Slug) {
-		return nil, errText("slug 只能包含小写字母、数字和连字符，且不能是 login/callback。")
+		return p, errText("slug 只能包含小写字母、数字和连字符，且不能是 login/callback。")
 	}
 	if p.Name == "" {
-		return nil, errText("显示名不能为空。")
+		return p, errText("显示名不能为空。")
 	}
 	if !providerTypeEndpointsValid(p) {
-		return nil, errText("端点必须是有效的 HTTPS URL，不得包含用户信息、查询参数或片段。")
+		return p, errText("端点必须是有效的 HTTPS URL，不得包含用户信息、查询参数或片段。")
 	}
 	if !providerRedirectValid(p) {
-		return nil, errText("回调地址必须是 HTTPS（本地允许 localhost HTTP），路径为 /oauth/" + p.Slug + "/callback。")
+		return p, errText("回调地址必须是 HTTPS（本地允许 localhost HTTP），路径为 /oauth/" + p.Slug + "/callback。")
 	}
 	if p.Enabled && (p.ClientID == "" || p.ClientSecret == "") {
-		return nil, errText("启用前必须填写 Client ID 和 Client Secret。")
+		return p, errText("启用前必须填写 Client ID 和 Client Secret。")
 	}
 	return p, nil
 }
@@ -188,7 +190,12 @@ func (h *AdminHandler) AdminProviderSave(c *gin.Context) {
 	providerAdminMu.Lock()
 	defer providerAdminMu.Unlock()
 	ps := services.GetOAuthProviderService()
-	old, err := ps.GetBySlug(c.Param("slug"))
+	// 新增路由 /admin/oidc/new 没有 :slug 参数，用表单提交的 slug 查旧记录。
+	lookupSlug := c.Param("slug")
+	if lookupSlug == "" {
+		lookupSlug = strings.TrimSpace(c.PostForm("slug"))
+	}
+	old, err := ps.GetBySlug(lookupSlug)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return

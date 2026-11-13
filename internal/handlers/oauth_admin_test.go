@@ -14,14 +14,14 @@ import (
 
 func TestProviderFromFormValidation(t *testing.T) {
 	valid := url.Values{
-		"slug":         {"google"},
-		"name":         {"Google"},
-		"type":         {"oidc"},
-		"issuer":       {"https://accounts.google.com"},
-		"redirect_url": {"https://example.com/oauth/google/callback"},
-		"client_id":    {"id"},
+		"slug":          {"google"},
+		"name":          {"Google"},
+		"type":          {"oidc"},
+		"issuer":        {"https://accounts.google.com"},
+		"redirect_url":  {"https://example.com/oauth/google/callback"},
+		"client_id":     {"id"},
 		"client_secret": {"secret"},
-		"enabled":      {"true"},
+		"enabled":       {"true"},
 	}
 	if _, err := providerFromForm(valid, nil); err != nil {
 		t.Fatalf("valid form rejected: %v", err)
@@ -93,5 +93,27 @@ func TestProviderAdminCSRFAndListTemplate(t *testing.T) {
 	r.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/admin/oidc/google/delete", strings.NewReader("csrf_token=forged")))
 	if w.Code != http.StatusForbidden {
 		t.Fatalf("forged CSRF delete status = %d", w.Code)
+	}
+}
+
+// 校验失败时必须返回已构造的 provider，模板重绘需要它，否则会 panic 500。
+func TestProviderFromFormReturnsProviderOnValidationError(t *testing.T) {
+	form := url.Values{
+		"slug": {"github"}, "name": {"GitHub"}, "type": {"github"},
+		"authorize_url": {"http://insecure.example.com/authorize"},
+		"token_url":     {"https://api.example.com/token"},
+		"userinfo_url":  {"https://api.example.com/user"},
+		"redirect_url":  {"https://example.com/oauth/github/callback"},
+		"client_id":     {"id"}, "client_secret": {"secret"},
+	}
+	p, err := providerFromForm(form, nil)
+	if err == nil {
+		t.Fatal("expected validation error for insecure endpoint")
+	}
+	if p == nil {
+		t.Fatal("providerFromForm returned nil on validation error; form re-render would panic")
+	}
+	if p.Slug != "github" || p.Type != "github" {
+		t.Fatalf("returned provider lost submitted values: %+v", p)
 	}
 }
