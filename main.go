@@ -178,6 +178,7 @@ func main() {
 		admin.POST("/friend-links/:id/delete", adminHandler.AdminFriendLinkDelete)
 		admin.POST("/upload", adminHandler.AdminUploadImage)
 		admin.GET("/users", adminHandler.AdminUsers)
+		admin.POST("/users/:id/delete", adminHandler.AdminDeleteUser)
 		admin.POST("/users/:id/role", adminHandler.AdminUpdateUserRole)
 		admin.POST("/users/:id/password", adminHandler.AdminResetUserPassword)
 		admin.POST("/users/:id/status", adminHandler.AdminUpdateUserStatus)

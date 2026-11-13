@@ -4,6 +4,7 @@ import (
 	"ai-later-nav/internal/database"
 	"ai-later-nav/internal/models"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -111,6 +112,54 @@ func (r *UserRepository) UpdateStatus(userID int64, status string) error {
 		return fmt.Errorf("update status: user %d not found", userID)
 	}
 	return nil
+}
+
+// ErrUserDeleteNotFound 表示事务内目标用户行已不存在（并发删除）。
+var ErrUserDeleteNotFound = errors.New("user not found during delete")
+
+// CountActiveAdmins 统计仍可登录后台的管理员数量，用于防止删掉最后一个管理员。
+func (r *UserRepository) CountActiveAdmins() (int64, error) {
+	var count int64
+	err := r.db.QueryRow(`SELECT COUNT(*) FROM users WHERE role = 'admin' AND status = 'active'`).Scan(&count)
+	return count, err
+}
+
+// DeleteByID 在单事务内删除用户及其关联数据，避免留下孤儿记录。
+// favorites / oauth_identities 由外键 ON DELETE CASCADE 自动清除；
+// site_submissions 和 visits 无外键，需显式处理：
+//   - 该用户提交的投稿一并删除（审核页 ListByStatus 用 INNER JOIN users，保留会静默丢失）
+//   - 别人投稿中 reviewed_by 指向该用户的置空
+//   - 访问记录保留统计价值，仅把 user_id 匿名化
+func (r *UserRepository) DeleteByID(userID int64) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin delete user: %w", err)
+	}
+	defer tx.Rollback()
+
+	// 锁住目标行，防止并发下重复删除或删到一半被其他操作改动。
+	var exists int
+	if err := tx.QueryRow(`SELECT 1 FROM users WHERE id = ? FOR UPDATE`, userID).Scan(&exists); err == sql.ErrNoRows {
+		return ErrUserDeleteNotFound
+	} else if err != nil {
+		return fmt.Errorf("lock user for delete: %w", err)
+	}
+
+	steps := []struct {
+		query string
+		args  []any
+	}{
+		{`DELETE FROM site_submissions WHERE user_id = ?`, []any{userID}},
+		{`UPDATE site_submissions SET reviewed_by = NULL WHERE reviewed_by = ?`, []any{userID}},
+		{`UPDATE visits SET user_id = NULL WHERE user_id = ?`, []any{userID}},
+		{`DELETE FROM users WHERE id = ?`, []any{userID}},
+	}
+	for _, step := range steps {
+		if _, err := tx.Exec(step.query, step.args...); err != nil {
+			return fmt.Errorf("delete user %d step %q: %w", userID, step.query, err)
+		}
+	}
+	return tx.Commit()
 }
 
 func (r *UserRepository) AddFavorite(userID, siteID int64) error {

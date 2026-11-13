@@ -7,6 +7,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"log"
 	"net/http"
 	"net/url"
@@ -473,20 +474,73 @@ func (h *AdminHandler) AdminNavDelete(c *gin.Context) {
 	c.Redirect(http.StatusFound, "/admin/nav")
 }
 
+// adminUserCSRF 是删除用户等不可逆操作的独立 CSRF 域。
+func adminUserCSRF(c *gin.Context) string {
+	token, err := c.Cookie("token")
+	if err != nil || token == "" {
+		return ""
+	}
+	mac := hmac.New(sha256.New, []byte(config.AppConfig.JWT.Secret))
+	mac.Write([]byte("admin-user:" + token))
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+func validAdminUserCSRF(c *gin.Context) bool {
+	expected := adminUserCSRF(c)
+	return expected != "" && hmac.Equal([]byte(expected), []byte(c.PostForm("csrf_token")))
+}
+
 func (h *AdminHandler) AdminUsers(c *gin.Context) {
-	h.renderAdminUsers(c, http.StatusOK, "")
+	h.renderAdminUsers(c, http.StatusOK, "", "")
+}
+
+func (h *AdminHandler) AdminDeleteUser(c *gin.Context) {
+	if !validAdminUserCSRF(c) {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+	targetUserID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		h.renderAdminUsers(c, http.StatusBadRequest, "无效的用户 ID", "")
+		return
+	}
+	if err := h.userService.DeleteUser(c.GetInt64("user_id"), targetUserID); err != nil {
+		h.renderAdminUsers(c, http.StatusOK, "删除失败: "+deleteUserErrorMessage(err), "")
+		return
+	}
+	redirectQuery := adminUserMutationListQuery(c)
+	if redirectQuery == "" {
+		redirectQuery = "?"
+	} else {
+		redirectQuery += "&"
+	}
+	c.Redirect(http.StatusSeeOther, "/admin/users"+redirectQuery+"deleted=1")
+}
+
+func deleteUserErrorMessage(err error) string {
+	switch {
+	case errors.Is(err, services.ErrCannotDeleteSelf):
+		return "不能删除当前登录账号"
+	case errors.Is(err, services.ErrCannotDeleteLastAdmin):
+		return "不能删除最后一个启用中的管理员"
+	case errors.Is(err, services.ErrUserNotFound):
+		return "用户不存在或已被删除"
+	default:
+		log.Printf("admin delete user: %v", err)
+		return "操作失败，请稍后重试"
+	}
 }
 
 func (h *AdminHandler) AdminUpdateUserRole(c *gin.Context) {
 	targetUserID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		h.renderAdminUsers(c, http.StatusOK, "无效的用户 ID")
+		h.renderAdminUsers(c, http.StatusOK, "无效的用户 ID", "")
 		return
 	}
 
 	role := strings.TrimSpace(c.PostForm("role"))
 	if err := h.userService.SetUserRole(c.GetInt64("user_id"), targetUserID, role); err != nil {
-		h.renderAdminUsers(c, http.StatusOK, "操作失败: "+err.Error())
+		h.renderAdminUsers(c, http.StatusOK, "操作失败: "+err.Error(), "")
 		return
 	}
 
@@ -496,18 +550,18 @@ func (h *AdminHandler) AdminUpdateUserRole(c *gin.Context) {
 func (h *AdminHandler) AdminResetUserPassword(c *gin.Context) {
 	targetUserID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		h.renderAdminUsers(c, http.StatusOK, "无效的用户 ID")
+		h.renderAdminUsers(c, http.StatusOK, "无效的用户 ID", "")
 		return
 	}
 
 	newPassword := c.PostForm("new_password")
 	if len(newPassword) < 6 {
-		h.renderAdminUsers(c, http.StatusOK, "新密码至少 6 位")
+		h.renderAdminUsers(c, http.StatusOK, "新密码至少 6 位", "")
 		return
 	}
 
 	if err := h.userService.ResetPasswordByAdmin(targetUserID, newPassword); err != nil {
-		h.renderAdminUsers(c, http.StatusOK, "操作失败: "+err.Error())
+		h.renderAdminUsers(c, http.StatusOK, "操作失败: "+err.Error(), "")
 		return
 	}
 
@@ -517,13 +571,13 @@ func (h *AdminHandler) AdminResetUserPassword(c *gin.Context) {
 func (h *AdminHandler) AdminUpdateUserStatus(c *gin.Context) {
 	targetUserID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		h.renderAdminUsers(c, http.StatusOK, "无效的用户 ID")
+		h.renderAdminUsers(c, http.StatusOK, "无效的用户 ID", "")
 		return
 	}
 
 	status := strings.TrimSpace(c.PostForm("status"))
 	if err := h.userService.SetUserStatus(c.GetInt64("user_id"), targetUserID, status); err != nil {
-		h.renderAdminUsers(c, http.StatusOK, "操作失败: "+err.Error())
+		h.renderAdminUsers(c, http.StatusOK, "操作失败: "+err.Error(), "")
 		return
 	}
 
@@ -564,7 +618,7 @@ func adminUserMutationListQuery(c *gin.Context) string {
 	return adminUserListQuery(query, page, true)
 }
 
-func (h *AdminHandler) renderAdminUsers(c *gin.Context, statusCode int, errorMsg string) {
+func (h *AdminHandler) renderAdminUsers(c *gin.Context, statusCode int, errorMsg, successMsg string) {
 	query, requestedPage := adminUserListPage(c)
 	// Mutation errors re-render a POST request, whose filters live in form fields.
 	if c.Request.Method == http.MethodPost {
@@ -591,8 +645,15 @@ func (h *AdminHandler) renderAdminUsers(c *gin.Context, statusCode int, errorMsg
 	common["query"] = query
 	common["basePath"] = "/admin/users"
 	common["currentUserID"] = c.GetInt64("user_id")
+	common["csrfToken"] = adminUserCSRF(c)
+	if c.Query("deleted") == "1" {
+		successMsg = "用户已删除，关联数据已清理。"
+	}
 	if errorMsg != "" {
 		common["error"] = errorMsg
+	}
+	if successMsg != "" {
+		common["success"] = successMsg
 	}
 	c.HTML(statusCode, "admin-users.html", common)
 }

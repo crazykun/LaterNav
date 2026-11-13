@@ -107,6 +107,7 @@
                                                     {{ if eq .Status "blocked" }}解除禁用{{ else }}禁用账号{{ end }}
                                                 </button>
                                             </form>
+                                            <button type="button" class="admin-btn-danger admin-btn-sm" onclick="showDeleteModal({{ .ID }}, '{{ .DisplayName }}')">删除用户</button>
                                             {{ else }}
                                             <span class="text-xs text-gray-400">当前账号不可改角色或状态</span>
                                             {{ end }}
@@ -141,6 +142,23 @@
         </div>
     </div>
 
+    <div id="deleteModal" class="admin-modal-overlay" style="display:none">
+        <div class="admin-modal">
+            <h3 class="admin-modal-title">删除用户</h3>
+            <p class="admin-modal-text">确定要删除 <span id="deleteModalName" class="font-semibold text-gray-900"></span> 吗？</p>
+            <p class="admin-modal-text" style="color:#b91c1c;margin-top:.5rem">此操作不可恢复：账号、收藏、三方绑定、投稿记录将一并删除，访问记录会匿名化保留。</p>
+            <form id="deleteModalForm" method="POST" style="margin-top:1rem">
+                <input type="hidden" name="csrf_token" value="{{ .csrfToken }}">
+                <input type="hidden" name="q" value="{{ .query }}">
+                <input type="hidden" name="page" value="{{ .page }}">
+                <div class="admin-modal-actions" style="margin-top:1rem">
+                    <button type="button" class="admin-btn-secondary" onclick="closeDeleteModal()">取消</button>
+                    <button type="submit" class="admin-btn-danger">确认删除</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
     function showPwdModal(userId, displayName) {
         document.getElementById('pwdModalName').textContent = displayName;
@@ -153,6 +171,18 @@
     }
     document.getElementById('pwdModal').addEventListener('click', function(e) {
         if (e.target === this) closePwdModal();
+    });
+
+    function showDeleteModal(userId, displayName) {
+        document.getElementById('deleteModalName').textContent = displayName;
+        document.getElementById('deleteModalForm').action = '/admin/users/' + userId + '/delete';
+        document.getElementById('deleteModal').style.display = '';
+    }
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').style.display = 'none';
+    }
+    document.getElementById('deleteModal').addEventListener('click', function(e) {
+        if (e.target === this) closeDeleteModal();
     });
     </script>
 </body>

@@ -20,6 +20,8 @@ var (
 	ErrUserBlocked            = errors.New("user is blocked")
 	ErrCannotModifySelfRole   = errors.New("cannot modify your own role")
 	ErrCannotBlockSelf        = errors.New("cannot block yourself")
+	ErrCannotDeleteSelf       = errors.New("不能删除当前登录账号")
+	ErrCannotDeleteLastAdmin  = errors.New("不能删除最后一个启用中的管理员")
 	ErrInvalidRole            = errors.New("invalid role")
 	ErrInvalidStatus          = errors.New("invalid status")
 	ErrInvalidUsername        = errors.New("invalid username")
@@ -297,6 +299,44 @@ func (s *UserService) ResetPasswordByAdmin(userID int64, newPassword string) err
 	}
 
 	return s.userRepo.UpdatePassword(userID, string(hash))
+}
+
+// canDeleteUser 汇总删除守卫：不能删自己，不能删掉最后一个启用中的管理员。
+// activeAdminCount 仅当目标是活跃管理员时才有意义（由调用方按需读取）。
+func canDeleteUser(adminID, targetUserID int64, target *models.User, activeAdminCount int64) error {
+	if adminID == targetUserID {
+		return ErrCannotDeleteSelf
+	}
+	if target == nil {
+		return ErrUserNotFound
+	}
+	if target.Role == "admin" && target.Status == "active" && activeAdminCount <= 1 {
+		return ErrCannotDeleteLastAdmin
+	}
+	return nil
+}
+
+// DeleteUser 物理删除用户并清理关联数据。守卫：不能删自己、不能删掉最后一个启用中的管理员。
+// 管理员数量在事务外读取，并发极端情况下可能少算，但删自己这一条始终有效，不会锁死系统。
+func (s *UserService) DeleteUser(adminID, targetUserID int64) error {
+	if adminID == targetUserID {
+		return ErrCannotDeleteSelf
+	}
+	user, err := s.userRepo.GetByID(targetUserID)
+	if err != nil {
+		return err
+	}
+	count := int64(0)
+	if user != nil && user.Role == "admin" && user.Status == "active" {
+		count, err = s.userRepo.CountActiveAdmins()
+		if err != nil {
+			return err
+		}
+	}
+	if err := canDeleteUser(adminID, targetUserID, user, count); err != nil {
+		return err
+	}
+	return s.userRepo.DeleteByID(targetUserID)
 }
 
 // SetUserRole allows admin to set another user's role
