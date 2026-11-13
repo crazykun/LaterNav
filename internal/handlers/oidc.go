@@ -41,12 +41,13 @@ type OIDCResult struct {
 	Picture           string
 	AuthTime          time.Time
 	Reauthenticated   bool
+	BindUserID        int64
 }
 type oidcTransaction struct {
-	nonce, verifier  string
-	expires          time.Time
-	maxAge           *time.Duration
-	reauthentication bool
+	nonce, verifier string
+	expires         time.Time
+	maxAge          *time.Duration
+	bindUserID      int64
 }
 type OIDCHandler struct {
 	config       OIDCConfig
@@ -191,8 +192,9 @@ func oidcHeaders(c *gin.Context) {
 	c.Header("Referrer-Policy", "no-referrer")
 }
 
-// Start initiates normal login. For sensitive reauthentication, use StartReauthentication.
-func (h *OIDCHandler) Start(c *gin.Context) { h.start(c, nil) }
+// Start initiates normal login. bindUserID>0 marks a link-to-current-account flow.
+func (h *OIDCHandler) Start(c *gin.Context)                   { h.start(c, nil, 0) }
+func (h *OIDCHandler) StartBind(c *gin.Context, userID int64) { h.start(c, nil, userID) }
 
 // StartReauthentication requires the provider to freshly authenticate and asserts auth_time on callback.
 // A caller must separately bind the verified subject to its current account and intended operation.
@@ -201,9 +203,10 @@ func (h *OIDCHandler) StartReauthentication(c *gin.Context, maxAge time.Duration
 		c.AbortWithStatus(400)
 		return
 	}
-	h.start(c, &maxAge)
+	h.start(c, &maxAge, 0)
 }
-func (h *OIDCHandler) start(c *gin.Context, maxAge *time.Duration) {
+
+func (h *OIDCHandler) start(c *gin.Context, maxAge *time.Duration, bindUserID int64) {
 	oidcHeaders(c)
 	state, e := oidcRandom()
 	if e != nil {
@@ -232,7 +235,7 @@ func (h *OIDCHandler) start(c *gin.Context, maxAge *time.Duration) {
 		c.AbortWithStatus(503)
 		return
 	}
-	h.transactions[state] = oidcTransaction{nonce: nonce, verifier: verifier, expires: now.Add(10 * time.Minute), maxAge: maxAge}
+	h.transactions[state] = oidcTransaction{nonce: nonce, verifier: verifier, expires: now.Add(10 * time.Minute), maxAge: maxAge, bindUserID: bindUserID}
 	h.mu.Unlock()
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(h.stateCookieName(), state, 600, "/", "", h.secureCookie(), true)
@@ -286,7 +289,7 @@ func (h *OIDCHandler) VerifyCallback(c *gin.Context) (OIDCResult, error) {
 	if id.Claims(&claims) != nil || (len(id.Audience) > 1 && claims.AuthorizedParty != h.config.ClientID) || (claims.AuthorizedParty != "" && claims.AuthorizedParty != h.config.ClientID) {
 		return out, errors.New("invalid ID token claims")
 	}
-	out = OIDCResult{Issuer: id.Issuer, Subject: id.Subject, PreferredUsername: claims.PreferredUsername, DisplayName: claims.DisplayName, Email: claims.Email, Picture: claims.Picture}
+	out = OIDCResult{Issuer: id.Issuer, Subject: id.Subject, PreferredUsername: claims.PreferredUsername, DisplayName: claims.DisplayName, Email: claims.Email, Picture: claims.Picture, BindUserID: tx.bindUserID}
 	if claims.AuthTime != nil {
 		out.AuthTime = time.Unix(*claims.AuthTime, 0)
 		if out.AuthTime.After(time.Now().Add(time.Minute)) {

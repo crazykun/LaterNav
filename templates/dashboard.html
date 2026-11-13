@@ -24,6 +24,8 @@
                     </button>
                     <div x-show="open" x-cloak x-transition
                          class="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                        <a href="/account/bindings"
+                           class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">账号绑定</a>
                         <button @click="open = false; document.getElementById('profile-dialog').showModal(); document.getElementById('profile-dialog').dispatchEvent(new Event('profile-open'))"
                                 class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">修改个人资料</button>
                         <button @click="open = false; $refs.pwdDialog.showModal()"

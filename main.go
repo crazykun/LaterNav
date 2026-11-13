@@ -13,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -70,7 +71,11 @@ func main() {
 
 	r := gin.New()
 	// Authorization codes and state must not be written to Gin's request log.
-	r.Use(gin.LoggerWithConfig(gin.LoggerConfig{SkipPaths: []string{"/oauth/callback"}}), gin.Recovery())
+	r.Use(gin.LoggerWithConfig(gin.LoggerConfig{
+		Skip: func(c *gin.Context) bool {
+			return c.Request.URL.Path == "/oauth/callback" || strings.HasSuffix(c.Request.URL.Path, "/callback") && strings.HasPrefix(c.Request.URL.Path, "/oauth/")
+		},
+	}), gin.Recovery())
 
 	tmplSub, _ := fs.Sub(templateFS, "templates")
 	pageTemplates := web.BuildPageTemplates(tmplSub)
@@ -93,6 +98,7 @@ func main() {
 	adminHandler := handlers.NewAdminHandler()
 	cronHandler := handlers.NewAdminCronTaskHandler(cronRepo, leaderboardTasks.Scheduler)
 	oauthRegistry := handlers.NewOAuthRegistry(services.GetOAuthProviderService())
+	bindingHandler := handlers.NewAccountBindingHandler(pageHandler, oauthRegistry)
 	// Legacy single-provider URLs keep working for the already-registered
 	// Linux.sb callback; new providers use /oauth/<slug>/*.
 	r.GET("/oauth/login", func(c *gin.Context) {
@@ -132,6 +138,9 @@ func main() {
 	auth.Use(middleware.AuthMiddleware())
 	{
 		auth.GET("/dashboard", pageHandler.UserDashboard)
+		auth.GET("/account/bindings", bindingHandler.AccountBindingsPage)
+		auth.POST("/api/account/bindings/:slug/start", bindingHandler.StartBind)
+		auth.POST("/api/account/bindings/:slug/unbind", bindingHandler.Unbind)
 		auth.GET("/api/profile", handlers.GetProfile)
 		auth.POST("/api/profile", handlers.UpdateProfile)
 		auth.POST("/api/auth/set-initial-credentials", apiHandler.SetInitialCredentials)

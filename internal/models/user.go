@@ -33,6 +33,8 @@ type OAuthIdentity struct {
 	Provider          string `json:"provider"`
 	ProviderName      string `json:"provider_name"`
 	ProviderType      string `json:"provider_type"`
+	ProviderSlug      string `json:"provider_slug"`
+	Subject           string `json:"subject"`
 	PreferredUsername string `json:"preferred_username"`
 	DisplayName       string `json:"display_name"`
 	Picture           string `json:"picture"`

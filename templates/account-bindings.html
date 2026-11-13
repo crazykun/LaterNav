@@ -1,0 +1,37 @@
+{{ template "layout.html" . }}
+
+{{ define "content" }}
+<div class="min-h-[80vh] bg-gray-50 dark:bg-gray-900 transition-colors duration-200 py-10 px-4">
+    <div class="max-w-3xl mx-auto">
+        <div class="mb-6">
+            <div class="flex items-center gap-3">
+                <a href="/dashboard" class="text-sm text-gray-500 dark:text-gray-400 hover:text-blue-500 transition-colors">个人中心</a>
+                <span class="text-gray-300 dark:text-gray-600">/</span>
+                <h1 class="text-xl font-bold text-gray-900 dark:text-white">账号绑定</h1>
+            </div>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">每个平台可绑定一个账号。绑定后可用该平台直接登录本站，不会切换当前登录账号。</p>
+        </div>
+
+        {{ if .pageNotice }}
+        <div class="mb-4 flex items-center gap-2 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 px-4 py-3 text-sm text-green-700 dark:text-green-300">
+            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            {{ .pageNotice }}
+        </div>
+        {{ end }}
+        {{ if .pageError }}
+        <div class="mb-4 flex items-center gap-2 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            {{ .pageError }}
+        </div>
+        {{ end }}
+
+        <div id="account-bindings-list">
+            {{ template "partials/account-bindings-list.html" . }}
+        </div>
+
+        <p class="text-center text-xs text-gray-400 dark:text-gray-500 mt-6">
+            解绑后该平台将无法再用于登录本站；若你只有一种登录方式，请先设置本站密码。
+        </p>
+    </div>
+</div>
+{{ end }}

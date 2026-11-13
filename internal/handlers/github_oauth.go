@@ -35,13 +35,19 @@ type GitHubResult struct {
 	DisplayName       string
 	Email             string
 	Picture           string
+	BindUserID        int64
+}
+
+type githubTransaction struct {
+	expires    time.Time
+	bindUserID int64
 }
 
 type GitHubHandler struct {
 	config       GitHubConfig
 	client       *http.Client
 	mu           sync.Mutex
-	transactions map[string]time.Time // state -> expiry (CSRF only; no nonce/PKCE needed)
+	transactions map[string]githubTransaction // state -> expiry + binding intent (CSRF only; no nonce/PKCE needed)
 }
 
 func validGitHubConfig(cfg GitHubConfig) bool {
@@ -52,7 +58,7 @@ func NewGitHubHandler(cfg GitHubConfig) (*GitHubHandler, error) {
 	if !validGitHubConfig(cfg) {
 		return nil, errors.New("invalid GitHub configuration")
 	}
-	return &GitHubHandler{config: cfg, client: oidcHTTPClient(), transactions: make(map[string]time.Time)}, nil
+	return &GitHubHandler{config: cfg, client: oidcHTTPClient(), transactions: make(map[string]githubTransaction)}, nil
 }
 
 func (h *GitHubHandler) secureCookie() bool {
@@ -66,7 +72,11 @@ func (h *GitHubHandler) stateCookieName() string {
 	return "gh_state"
 }
 
-func (h *GitHubHandler) Start(c *gin.Context) {
+// Start initiates normal login. bindUserID>0 marks a link-to-current-account flow.
+func (h *GitHubHandler) Start(c *gin.Context)                   { h.start(c, 0) }
+func (h *GitHubHandler) StartBind(c *gin.Context, userID int64) { h.start(c, userID) }
+
+func (h *GitHubHandler) start(c *gin.Context, bindUserID int64) {
 	oidcHeaders(c)
 	state, err := oidcRandom()
 	if err != nil {
@@ -75,8 +85,8 @@ func (h *GitHubHandler) Start(c *gin.Context) {
 	}
 	h.mu.Lock()
 	now := time.Now()
-	for k, exp := range h.transactions {
-		if now.After(exp) {
+	for k, tx := range h.transactions {
+		if now.After(tx.expires) {
 			delete(h.transactions, k)
 		}
 	}
@@ -85,7 +95,7 @@ func (h *GitHubHandler) Start(c *gin.Context) {
 		c.AbortWithStatus(http.StatusServiceUnavailable)
 		return
 	}
-	h.transactions[state] = now.Add(10 * time.Minute)
+	h.transactions[state] = githubTransaction{expires: now.Add(10 * time.Minute), bindUserID: bindUserID}
 	h.mu.Unlock()
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(h.stateCookieName(), state, 600, "/", "", h.secureCookie(), true)
@@ -111,17 +121,22 @@ func (h *GitHubHandler) VerifyCallback(c *gin.Context) (GitHubResult, error) {
 		return out, errors.New("invalid transaction")
 	}
 	h.mu.Lock()
-	exp, ok := h.transactions[state]
+	tx, ok := h.transactions[state]
 	delete(h.transactions, state)
 	h.mu.Unlock()
-	if !ok || !time.Now().Before(exp) || len(q["code"]) != 1 || q.Get("code") == "" || q.Get("error") != "" {
+	if !ok || !time.Now().Before(tx.expires) || len(q["code"]) != 1 || q.Get("code") == "" || q.Get("error") != "" {
 		return out, errors.New("invalid transaction")
 	}
 	token, err := h.exchange(c.Request.Context(), q.Get("code"))
 	if err != nil {
 		return out, err
 	}
-	return h.fetchUser(c.Request.Context(), token)
+	out, err = h.fetchUser(c.Request.Context(), token)
+	if err != nil {
+		return GitHubResult{}, err
+	}
+	out.BindUserID = tx.bindUserID
+	return out, nil
 }
 
 func (h *GitHubHandler) exchange(ctx context.Context, code string) (string, error) {

@@ -106,13 +106,14 @@ var funcMap = template.FuncMap{
 
 func BuildPageTemplates(root fs.FS) map[string]*template.Template {
 	return map[string]*template.Template{
-		"index.html":       template.Must(template.New("index.html").Funcs(funcMap).ParseFS(root, "layout.html", "index.html", "partials/*.html")),
-		"leaderboard.html": template.Must(template.New("leaderboard.html").Funcs(funcMap).ParseFS(root, "layout.html", "leaderboard.html", "partials/*.html")),
-		"login.html":       template.Must(template.New("login.html").Funcs(funcMap).ParseFS(root, "layout.html", "login.html", "partials/*.html")),
-		"register.html":    template.Must(template.New("register.html").Funcs(funcMap).ParseFS(root, "layout.html", "register.html", "partials/*.html")),
-		"dashboard.html":   template.Must(template.New("dashboard.html").Funcs(funcMap).ParseFS(root, "layout.html", "dashboard.html", "partials/*.html")),
-		"submit.html":      template.Must(template.New("submit.html").Funcs(funcMap).ParseFS(root, "layout.html", "submit.html", "partials/*.html")),
-		"setup.html":       template.Must(template.New("setup.html").Funcs(funcMap).ParseFS(root, "layout.html", "setup.html", "partials/*.html")),
+		"index.html":            template.Must(template.New("index.html").Funcs(funcMap).ParseFS(root, "layout.html", "index.html", "partials/*.html")),
+		"leaderboard.html":      template.Must(template.New("leaderboard.html").Funcs(funcMap).ParseFS(root, "layout.html", "leaderboard.html", "partials/*.html")),
+		"login.html":            template.Must(template.New("login.html").Funcs(funcMap).ParseFS(root, "layout.html", "login.html", "partials/*.html")),
+		"register.html":         template.Must(template.New("register.html").Funcs(funcMap).ParseFS(root, "layout.html", "register.html", "partials/*.html")),
+		"dashboard.html":        template.Must(template.New("dashboard.html").Funcs(funcMap).ParseFS(root, "layout.html", "dashboard.html", "partials/*.html")),
+		"account-bindings.html": template.Must(template.New("account-bindings.html").Funcs(funcMap).ParseFS(root, "layout.html", "account-bindings.html", "partials/*.html")),
+		"submit.html":           template.Must(template.New("submit.html").Funcs(funcMap).ParseFS(root, "layout.html", "submit.html", "partials/*.html")),
+		"setup.html":            template.Must(template.New("setup.html").Funcs(funcMap).ParseFS(root, "layout.html", "setup.html", "partials/*.html")),
 	}
 }
 
