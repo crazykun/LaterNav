@@ -1,0 +1,22 @@
+{{ define "partials/account-page-header.html" }}
+<header id="account-page-header" class="mb-8 border-b border-gray-200 dark:border-gray-700 pb-6">
+    <nav aria-label="面包屑导航" class="flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+        <a href="/" class="rounded hover:text-blue-600 dark:hover:text-blue-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">首页</a>
+        <span aria-hidden="true" class="text-gray-400 dark:text-gray-500">/</span>
+        {{ if eq .Active "dashboard" }}
+        <span aria-current="page" class="font-medium text-gray-900 dark:text-white">个人中心</span>
+        {{ else }}
+        <a href="/dashboard" class="rounded hover:text-blue-600 dark:hover:text-blue-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">个人中心</a>
+        <span aria-hidden="true" class="text-gray-400 dark:text-gray-500">/</span>
+        <span aria-current="page" class="font-medium text-gray-900 dark:text-white">{{ .Title }}</span>
+        {{ end }}
+    </nav>
+    <h1 class="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-3xl">{{ .Title }}</h1>
+    <p class="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-300">{{ .Description }}</p>
+    <nav aria-label="个人中心导航" class="mt-6 flex flex-wrap gap-2">
+        <a href="/dashboard" {{ if eq .Active "dashboard" }}aria-current="page"{{ end }} class="inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-medium transition-colors duration-200 motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 {{ if eq .Active "dashboard" }}bg-blue-600 text-white{{ else }}border border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:text-blue-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:text-blue-400{{ end }}">个人中心</a>
+        <a href="/account/profile" {{ if eq .Active "profile" }}aria-current="page"{{ end }} class="inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-medium transition-colors duration-200 motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 {{ if eq .Active "profile" }}bg-blue-600 text-white{{ else }}border border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:text-blue-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:text-blue-400{{ end }}">账号资料</a>
+        <a href="/submit" {{ if eq .Active "submit" }}aria-current="page"{{ end }} class="inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-medium transition-colors duration-200 motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 {{ if eq .Active "submit" }}bg-blue-600 text-white{{ else }}border border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:text-blue-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:text-blue-400{{ end }}">投稿站点</a>
+    </nav>
+</header>
+{{ end }}

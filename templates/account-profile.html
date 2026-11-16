@@ -3,11 +3,7 @@
 {{ define "content" }}
 <div class="min-h-[80vh] bg-gray-50 dark:bg-gray-900 py-8 sm:py-12 px-4">
     <div class="max-w-5xl mx-auto">
-        <div class="mb-8">
-            <a href="/dashboard" class="text-sm text-gray-500 dark:text-gray-400 hover:text-blue-500">个人中心</a>
-            <h1 class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">账号资料</h1>
-            <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">头像、昵称、密码和第三方登录方式，都可以在这里管理。</p>
-        </div>
+        {{ template "partials/account-page-header.html" (dict "Active" "profile" "Title" "账号资料" "Description" "头像、昵称、密码和第三方登录方式，都可以在这里管理。") }}
         {{ if .pageNotice }}<div role="status" class="mb-5 rounded-lg bg-green-50 dark:bg-green-900/20 p-4 text-sm text-green-700 dark:text-green-300">{{ .pageNotice }}</div>{{ end }}
         {{ if .pageError }}<div role="alert" class="mb-5 rounded-lg bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-700 dark:text-red-300">{{ .pageError }}</div>{{ end }}
 

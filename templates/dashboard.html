@@ -1,42 +1,14 @@
 {{ template "layout.html" . }}
 
 {{ define "content" }}
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-    <!-- Dashboard Header -->
-    <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <h1 class="text-lg font-bold text-gray-900 dark:text-white">我的收藏</h1>
-                <a href="/account/profile" class="ml-2 text-sm text-blue-600 dark:text-blue-400 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">账号资料</a>
-                <span class="text-sm text-gray-400">{{ if .favoriteSites }}{{ len .favoriteSites }} 个工具{{ end }}</span>
-            </div>
-            <div class="flex items-center gap-3">
-                <a href="/" class="text-sm text-gray-500 dark:text-gray-400 hover:text-blue-500 transition-colors">返回首页</a>
-                <!-- 用户下拉菜单 -->
-                <div x-data="{ open: false }" @click.outside="open = false" class="relative">
-                    <button @click="open = !open" class="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer">
-                        {{ if .avatarURL }}<img src="{{ .avatarURL }}" alt="" class="w-7 h-7 rounded-full object-cover" loading="lazy" referrerpolicy="no-referrer">{{ else }}<div class="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold">{{ .displayName | printf "%.1s" | upper }}</div>{{ end }}
-                        <span class="hidden sm:inline">{{ .displayName }}</span>
-                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
-                    </button>
-                    <div x-show="open" x-cloak x-transition
-                         class="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
-                        <a href="/account/profile" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">账号资料</a>
-                        <hr class="my-1 border-gray-100 dark:border-gray-700">
-                        <button hx-post="/api/auth/logout"
-                                class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
-                            退出登录
-                        </button>
-                    </div>
-                </div>
-            </div>
+<div class="min-h-[80vh] bg-gray-50 dark:bg-gray-900 transition-colors duration-200 py-8 sm:py-12 px-4">
+    <div class="max-w-5xl mx-auto">
+        {{ template "partials/account-page-header.html" (dict "Active" "dashboard" "Title" "个人中心" "Description" "管理收藏的工具、查看投稿记录。") }}
+        <div class="mb-4 flex items-center gap-3">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">我的收藏</h2>
+            {{ if .favoriteSites }}<span class="text-sm text-gray-500 dark:text-gray-400">{{ len .favoriteSites }} 个工具</span>{{ end }}
         </div>
-    </div>
-
-    <!-- 收藏列表 -->
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+        <!-- 收藏列表 -->
         <div id="favorites-container">
             {{ template "partials/favorites-list.html" . }}
         </div>
