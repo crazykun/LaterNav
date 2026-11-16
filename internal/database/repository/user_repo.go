@@ -145,7 +145,8 @@ func (r *UserRepository) CountActiveAdmins() (int64, error) {
 }
 
 // DeleteByID 在单事务内删除用户及其关联数据，避免留下孤儿记录。
-// favorites / oauth_identities 由外键 ON DELETE CASCADE 自动清除；
+// favorites 由外键 ON DELETE CASCADE 自动清除；
+// oauth_identities 显式删除，兼容缺少级联外键的旧数据库；
 // site_submissions 和 visits 无外键，需显式处理：
 //   - 该用户提交的投稿一并删除（审核页 ListByStatus 用 INNER JOIN users，保留会静默丢失）
 //   - 别人投稿中 reviewed_by 指向该用户的置空
@@ -169,6 +170,7 @@ func (r *UserRepository) DeleteByID(userID int64) error {
 		query string
 		args  []any
 	}{
+		{`DELETE FROM oauth_identities WHERE user_id = ?`, []any{userID}},
 		{`DELETE FROM site_submissions WHERE user_id = ?`, []any{userID}},
 		{`UPDATE site_submissions SET reviewed_by = NULL WHERE reviewed_by = ?`, []any{userID}},
 		{`UPDATE visits SET user_id = NULL WHERE user_id = ?`, []any{userID}},
