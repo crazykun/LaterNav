@@ -70,11 +70,49 @@ func (r *OAuthIdentityRepository) Bind(userID int64, providerKey string, profile
 	}
 	defer tx.Rollback()
 
+	// Read the owner without a lock first. Deleting a user locks users before
+	// oauth_identities, so locking the identity before its owner can deadlock.
 	var ownerID int64
-	err = tx.QueryRow(`SELECT user_id FROM oauth_identities WHERE provider = ? AND subject = ? FOR UPDATE`,
+	lookupErr := tx.QueryRow(`SELECT user_id FROM oauth_identities WHERE provider = ? AND subject = ?`,
 		providerKey, profile.Subject).Scan(&ownerID)
+	if lookupErr != nil && lookupErr != sql.ErrNoRows {
+		return fmt.Errorf("query existing identity owner: %w", lookupErr)
+	}
+	// Lock both user rows in a stable order before the identity. This also
+	// protects the target user against concurrent deletion before INSERT.
+	userIDs := []int64{userID}
+	if lookupErr == nil && ownerID != userID {
+		if ownerID < userID {
+			userIDs = []int64{ownerID, userID}
+		} else {
+			userIDs = append(userIDs, ownerID)
+		}
+	}
+	var ownerExists bool
+	for _, id := range userIDs {
+		var exists int
+		ownerErr := tx.QueryRow(`SELECT 1 FROM users WHERE id = ? FOR UPDATE`, id).Scan(&exists)
+		if ownerErr != nil && ownerErr != sql.ErrNoRows {
+			return fmt.Errorf("lock identity user: %w", ownerErr)
+		}
+		if id == userID && ownerErr == sql.ErrNoRows {
+			return fmt.Errorf("bind identity: user %d not found", userID)
+		}
+		if id == ownerID {
+			ownerExists = ownerErr == nil
+		}
+	}
+
+	// Locking reads see the latest committed row, even if the initial
+	// non-locking read used an older repeatable-read snapshot.
+	var lockedOwnerID int64
+	err = tx.QueryRow(`SELECT user_id FROM oauth_identities WHERE provider = ? AND subject = ? FOR UPDATE`,
+		providerKey, profile.Subject).Scan(&lockedOwnerID)
+	if err == nil && (lookupErr == sql.ErrNoRows || lockedOwnerID != ownerID) {
+		return ErrIdentityOwnedElsewhere // owner changed before the lock: fail closed
+	}
 	switch {
-	case err == nil && ownerID == userID:
+	case err == nil && lockedOwnerID == userID && ownerExists:
 		// 已经绑定到当前用户，仅刷新资料。
 		_, err = tx.Exec(`UPDATE oauth_identities SET preferred_username=?, display_name=?, picture=?, email=? WHERE provider=? AND subject=?`,
 			profile.PreferredUsername, profile.DisplayName, profile.Picture, profile.Email, providerKey, profile.Subject)
@@ -83,7 +121,20 @@ func (r *OAuthIdentityRepository) Bind(userID int64, providerKey string, profile
 		}
 		return tx.Commit()
 	case err == nil:
-		return ErrIdentityOwnedElsewhere
+		if ownerExists {
+			return ErrIdentityOwnedElsewhere
+		}
+		// Legacy tables may lack the cascade FK. Only reclaim a row whose
+		// former owner is absent, with the identity row locked and a checked
+		// conditional delete; never transfer a live user's identity.
+		result, err := tx.Exec(`DELETE FROM oauth_identities WHERE provider = ? AND subject = ? AND user_id = ?`, providerKey, profile.Subject, ownerID)
+		if err != nil {
+			return fmt.Errorf("delete orphaned identity: %w", err)
+		}
+		affected, err := result.RowsAffected()
+		if err != nil || affected != 1 {
+			return fmt.Errorf("delete orphaned identity: expected one row, affected %d: %w", affected, err)
+		}
 	case err != sql.ErrNoRows:
 		return fmt.Errorf("query existing identity: %w", err)
 	}
